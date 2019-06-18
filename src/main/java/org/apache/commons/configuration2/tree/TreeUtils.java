@@ -57,7 +57,6 @@ public final class TreeUtils
         {
             stream.print(result.getValue());
         }
-        boolean newline = false;
         if (!result.getChildren().isEmpty())
         {
             stream.print("\n");
@@ -65,10 +64,6 @@ public final class TreeUtils
             {
                 printTree(stream, indent + "  ", child);
             }
-            newline = true;
-        }
-        if (newline)
-        {
             stream.print(indent);
         }
         stream.println("</" + result.getNodeName() + ">");

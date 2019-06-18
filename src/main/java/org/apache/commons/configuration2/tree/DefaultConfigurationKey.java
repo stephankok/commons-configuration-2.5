@@ -121,18 +121,9 @@ public class DefaultConfigurationKey
      */
     public DefaultConfigurationKey append(final String property, final boolean escape)
     {
-        String key;
-        if (escape && property != null)
-        {
-            key = escapeDelimiters(property);
-        }
-        else
-        {
-            key = property;
-        }
-        key = trim(key);
-
-        if (keyBuffer.length() > 0 && !isAttributeKey(property)
+        String key = formatProperty(property, escape);
+        
+		if (keyBuffer.length() > 0 && !isAttributeKey(property)
                 && key.length() > 0)
         {
             keyBuffer.append(getSymbols().getPropertyDelimiter());
@@ -141,6 +132,17 @@ public class DefaultConfigurationKey
         keyBuffer.append(key);
         return this;
     }
+
+	private String formatProperty(final String property, final boolean escape) {
+		String key;
+		if (escape && property != null) {
+			key = escapeDelimiters(property);
+		} else {
+			key = property;
+		}
+		key = trim(key);
+		return key;
+	}
 
     /**
      * Appends the name of a property to this key. If necessary, a property
@@ -257,16 +259,8 @@ public class DefaultConfigurationKey
 
         if (common.length() < other.length())
         {
-            final String k = other.toString().substring(common.length());
-            // skip trailing delimiters
-            int i = 0;
-            while (i < k.length()
-                    && String.valueOf(k.charAt(i)).equals(
-                            getSymbols().getPropertyDelimiter()))
-            {
-                i++;
-            }
-
+			final String k = other.toString().substring(common.length());
+			int i = skipTrailing(other, common, k);
             if (i < k.length())
             {
                 result.append(k.substring(i));
@@ -275,6 +269,15 @@ public class DefaultConfigurationKey
 
         return result;
     }
+
+	private int skipTrailing(final DefaultConfigurationKey other, final DefaultConfigurationKey common, String k) 
+	{		
+		int i = 0;
+		while (i < k.length() && String.valueOf(k.charAt(i)).equals(getSymbols().getPropertyDelimiter())) {
+			i++;
+		}
+		return i;
+	}
 
     /**
      * Checks if two {@code ConfigurationKey} objects are equal. Two instances
@@ -774,23 +777,28 @@ public class DefaultConfigurationKey
          */
         private String nextKeyPart()
         {
-            int attrIdx = keyBuffer.toString().indexOf(
-                    getSymbols().getAttributeStart(), startIndex);
-            if (attrIdx < 0 || attrIdx == startIndex)
-            {
-                attrIdx = length();
-            }
-
-            int delIdx = nextDelimiterPos(keyBuffer.toString(), startIndex,
-                    attrIdx);
-            if (delIdx < 0)
-            {
-                delIdx = attrIdx;
-            }
-
-            endIndex = Math.min(attrIdx, delIdx);
+        	int attrIdx = getAttributeIndex();
+            int delIdx = getDelimiterIndex(attrIdx);
+            
+			endIndex = Math.min(attrIdx, delIdx);
             return unescapeDelimiters(keyBuffer.substring(startIndex, endIndex));
         }
+
+		private int getDelimiterIndex(int attrIdx) {		
+			int delIdx = nextDelimiterPos(keyBuffer.toString(), startIndex, attrIdx);
+			if (delIdx < 0) {
+				delIdx = attrIdx;
+			}
+			return delIdx;
+		}
+
+		private int getAttributeIndex() {
+			int attrIdx = keyBuffer.toString().indexOf(getSymbols().getAttributeStart(), startIndex);
+			if (attrIdx < 0 || attrIdx == startIndex) {
+				attrIdx = length();
+			}
+			return attrIdx;
+		}
 
         /**
          * Searches the next unescaped delimiter from the given position.

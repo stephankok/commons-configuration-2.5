@@ -695,16 +695,18 @@ public class InMemoryNodeModel implements NodeModel<ImmutableNode>
                     "Replacement node must not be null!");
         }
 
-        boolean done;
-        do
-        {
-            final TreeData currentData = structure.get();
-            done =
-                    replaceDetachedTrackedNode(currentData, selector, newNode)
-                            || replaceActiveTrackedNode(currentData, selector,
-                                    newNode);
-        } while (!done);
+        boolean done = replaceTrackedNode2(selector, newNode);
     }
+
+	private boolean replaceTrackedNode2(final NodeSelector selector, final ImmutableNode newNode) {
+		boolean done;
+		do {
+			final TreeData currentData = structure.get();
+			done = replaceDetachedTrackedNode(currentData, selector, newNode)
+					|| replaceActiveTrackedNode(currentData, selector, newNode);
+		} while (!done);
+		return done;
+	}
 
     /**
      * Returns a {@code NodeHandler} for a tracked node. Such a handler may be

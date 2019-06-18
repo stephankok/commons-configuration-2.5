@@ -148,12 +148,8 @@ class ReferenceTracker
                                 new HashMap<>(references);
                     }
                     newRefs.remove(node);
-                    if (newRemovedRefs == null)
-                    {
-                        newRemovedRefs =
-                                new LinkedList<>(removedReferences);
-                    }
-                    newRemovedRefs.add(ref);
+                    newRemovedRefs = checkRemovedRefs(newRemovedRefs);
+					newRemovedRefs.add(ref);
                 }
             }
 
@@ -165,6 +161,13 @@ class ReferenceTracker
 
         return this;
     }
+
+	private List<Object> checkRemovedRefs(List<Object> newRemovedRefs) {
+		if (newRemovedRefs == null) {
+			newRemovedRefs = new LinkedList<>(removedReferences);
+		}
+		return newRemovedRefs;
+	}
 
     /**
      * Returns the reference object associated with the given node.

@@ -129,21 +129,24 @@ class NodeTracker
         final Iterator<ImmutableNode> itNodes = nodes.iterator();
         for (final NodeSelector selector : selectors)
         {
-            final ImmutableNode node = itNodes.next();
-            TrackedNodeData trackData = newState.get(selector);
-            if (trackData == null)
-            {
-                trackData = new TrackedNodeData(node);
-            }
-            else
-            {
-                trackData = trackData.observerAdded();
-            }
-            newState.put(selector, trackData);
+            NodeTracker.TrackedNodeData trackData = getTrackData(newState, itNodes, selector);
+			newState.put(selector, trackData);
         }
 
         return new NodeTracker(newState);
     }
+
+	private NodeTracker.TrackedNodeData getTrackData(final Map<NodeSelector, NodeTracker.TrackedNodeData> newState,
+			final Iterator<ImmutableNode> itNodes, final NodeSelector selector) {
+		final ImmutableNode node = itNodes.next();
+		TrackedNodeData trackData = newState.get(selector);
+		if (trackData == null) {
+			trackData = new TrackedNodeData(node);
+		} else {
+			trackData = trackData.observerAdded();
+		}
+		return trackData;
+	}
 
     /**
      * Notifies this object that an observer was removed for the specified

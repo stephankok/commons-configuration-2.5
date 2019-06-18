@@ -1036,21 +1036,9 @@ class ModelTransaction
          */
         public void apply(final ImmutableNode target, final int level)
         {
-            ImmutableNode node = target;
-            if (childrenOperation != null)
-            {
-                node = childrenOperation.apply(node, this);
-            }
-
-            if (operations != null)
-            {
-                for (final Operation op : operations)
-                {
-                    node = op.apply(node, this);
-                }
-            }
-
-            handleAddedNodes(node);
+            ImmutableNode node = nodeOperation(target);
+            
+			handleAddedNodes(node);
             if (level == 0)
             {
                 // reached the root node
@@ -1063,6 +1051,19 @@ class ModelTransaction
                 propagateChange(target, node, level);
             }
         }
+
+		private ImmutableNode nodeOperation(final ImmutableNode target) {
+			ImmutableNode node = target;
+			if (childrenOperation != null) {
+				node = childrenOperation.apply(node, this);
+			}
+			if (operations != null) {
+				for (final Operation op : operations) {
+					node = op.apply(node, this);
+				}
+			}
+			return node;
+		}
 
         /**
          * Propagates the changes on the target node to the next level above of
@@ -1077,17 +1078,20 @@ class ModelTransaction
                 final int level)
         {
             final ImmutableNode parent = getParent(target);
-            final ChildrenUpdateOperation co = new ChildrenUpdateOperation();
-            if (InMemoryNodeModel.checkIfNodeDefined(node))
-            {
-                co.addNodeToReplace(target, node);
-            }
-            else
-            {
-                co.addNodeToRemove(target);
-            }
-            fetchOperations(parent, level - 1).addChildrenOperation(co);
+            ModelTransaction.ChildrenUpdateOperation co = checkIfNodeDefined(target, node);
+			fetchOperations(parent, level - 1).addChildrenOperation(co);
         }
+
+		private ModelTransaction.ChildrenUpdateOperation checkIfNodeDefined(final ImmutableNode target,
+				final ImmutableNode node) {
+			final ChildrenUpdateOperation co = new ChildrenUpdateOperation();
+			if (InMemoryNodeModel.checkIfNodeDefined(node)) {
+				co.addNodeToReplace(target, node);
+			} else {
+				co.addNodeToRemove(target);
+			}
+			return co;
+		}
 
         /**
          * Checks whether new nodes have been added during operation execution.
