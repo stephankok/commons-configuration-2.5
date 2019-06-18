@@ -107,31 +107,33 @@ public class ConfigurationPropertiesFactoryBean implements InitializingBean, Fac
             throw new IllegalArgumentException("no configuration object or location specified");
         }
 
-        if (compositeConfiguration == null)
-        {
-            compositeConfiguration = new CompositeConfiguration();
-        }
-
-        compositeConfiguration.setThrowExceptionOnMissing(throwExceptionOnMissing);
-
-        if (configurations != null)
-        {
-            for (final Configuration configuration : configurations)
-            {
-                compositeConfiguration.addConfiguration(configuration);
-            }
-        }
-
-        if (locations != null)
-        {
-            for (final Resource location : locations)
-            {
-                final URL url = location.getURL();
-                final Configuration props = new Configurations().properties(url);
-                compositeConfiguration.addConfiguration(props);
-            }
-        }
+        setCompositeConfiguration();
     }
+
+	private void setCompositeConfiguration()
+			throws java.io.IOException, org.apache.commons.configuration2.ex.ConfigurationException {
+		if (compositeConfiguration == null) {
+			compositeConfiguration = new CompositeConfiguration();
+		}
+		newCompositeConfiguration();
+	}
+
+	private void newCompositeConfiguration()
+			throws java.io.IOException, org.apache.commons.configuration2.ex.ConfigurationException {
+		compositeConfiguration.setThrowExceptionOnMissing(throwExceptionOnMissing);
+		if (configurations != null) {
+			for (final Configuration configuration : configurations) {
+				compositeConfiguration.addConfiguration(configuration);
+			}
+		}
+		if (locations != null) {
+			for (final Resource location : locations) {
+				final URL url = location.getURL();
+				final Configuration props = new Configurations().properties(url);
+				compositeConfiguration.addConfiguration(props);
+			}
+		}
+	}
 
     public Configuration[] getConfigurations()
     {
