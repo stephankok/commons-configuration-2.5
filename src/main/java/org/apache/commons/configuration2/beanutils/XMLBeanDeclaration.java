@@ -373,19 +373,10 @@ public class XMLBeanDeclaration implements BeanDeclaration
             {
                 if (nested.containsKey(child.nodeName()))
                 {
-                    final Object obj = nested.get(child.nodeName());
-                    List<BeanDeclaration> list;
-                    if (obj instanceof List)
-                    {
-                        // Safe because we created the lists ourselves.
-                        @SuppressWarnings("unchecked")
-                        final
-                        List<BeanDeclaration> tmpList = (List<BeanDeclaration>) obj;
-                        list = tmpList;
-                    }
-                    else
-                    {
-                        list = new ArrayList<>();
+                	final Object obj = nested.get(child.nodeName());
+                    List<BeanDeclaration> list = listFromCheckedNode(nested, obj);
+                    if (!(obj instanceof List))
+                    {                  
                         list.add((BeanDeclaration) obj);
                         nested.put(child.nodeName(), list);
                     }
@@ -400,6 +391,19 @@ public class XMLBeanDeclaration implements BeanDeclaration
 
         return nested;
     }
+
+	private List<BeanDeclaration> listFromCheckedNode(final Map<String, Object> nested,
+			final Object obj) {		
+		List<BeanDeclaration> list;
+		if (obj instanceof List) {
+			@SuppressWarnings("unchecked")
+			final List<BeanDeclaration> tmpList = (List<BeanDeclaration>) obj;
+			list = tmpList;
+		} else {
+			list = new ArrayList<>();
+		}
+		return list;
+	}
 
     /**
      * {@inheritDoc} This implementation processes all child nodes with the name
