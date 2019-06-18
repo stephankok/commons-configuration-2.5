@@ -536,31 +536,45 @@ public class INIConfiguration extends BaseHierarchicalConfiguration implements
 
                 else
                 {
-                    String key;
-                    String value = "";
-                    final int index = findSeparator(line);
-                    if (index >= 0)
-                    {
-                        key = line.substring(0, index);
-                        value = parseValue(line.substring(index + 1), in);
-                    }
-                    else
-                    {
-                        key = line;
-                    }
-                    key = key.trim();
-                    if (key.length() < 1)
-                    {
-                        // use space for properties with no key
-                        key = " ";
-                    }
-                    createValueNodes(sectionBuilder, key, value);
+                	rootBuilder(in, sectionBuilder, line);
                 }
             }
 
             line = in.readLine();
         }
     }
+    
+    private void rootBuilder(final BufferedReader in, ImmutableNode.Builder sectionBuilder, String line)
+			throws java.io.IOException {
+		String key = createKeyFromLine(line);
+		String value = createValueFromLine(in, line);
+		createValueNodes(sectionBuilder, key, value);
+		
+	}
+
+	private String createValueFromLine(final BufferedReader in, String line) throws java.io.IOException {
+		String value = "";
+		final int index = findSeparator(line);
+		if (index >= 0) {
+			value = parseValue(line.substring(index + 1), in);
+		}
+		return value;
+	}
+
+	private String createKeyFromLine(String line) {
+		String key;
+		final int index = findSeparator(line);
+		if (index >= 0) {
+			key = line.substring(0, index);
+		} else {
+			key = line;
+		}
+		key = key.trim();
+		if (key.length() < 1) {
+			key = " ";
+		}
+		return key;
+	}
 
     /**
      * Creates the node(s) for the given key value-pair. If delimiter parsing is
@@ -577,12 +591,15 @@ public class INIConfiguration extends BaseHierarchicalConfiguration implements
         final Collection<String> values =
                 getListDelimiterHandler().split(value, false);
 
-        for (final String v : values)
-        {
-            sectionBuilder.addChild(new ImmutableNode.Builder().name(key)
-                    .value(v).create());
-        }
+        fillBuilderWithValues(sectionBuilder, key, values);
     }
+
+	private void fillBuilderWithValues(final ImmutableNode.Builder sectionBuilder, final String key,
+			final Collection<String> values) {
+		for (final String v : values) {
+			sectionBuilder.addChild(new ImmutableNode.Builder().name(key).value(v).create());
+		}
+	}
 
     /**
      * Writes data about a property into the given stream.
@@ -746,16 +763,20 @@ public class INIConfiguration extends BaseHierarchicalConfiguration implements
         }
         else
         {
-            int end = pos;
-            while (end < line.length() && !isCommentChar(line.charAt(end)))
-            {
-                end++;
-            }
-            s = line.substring(pos, end);
+            int end = findEnd(line, pos);
+			s = line.substring(pos, end);
         }
 
         return lineContinues(s);
     }
+
+	private int findEnd(final String line, final int pos) {
+		int end = pos;
+		while (end < line.length() && !isCommentChar(line.charAt(end))) {
+			end++;
+		}
+		return end;
+	}
 
     /**
      * Tests whether the specified character is a comment character.
@@ -867,24 +888,25 @@ public class INIConfiguration extends BaseHierarchicalConfiguration implements
      */
     private String escapeComments(final String value)
     {
-        final String commentChars = getCommentLeadingCharsUsedInInput();
-        boolean quoted = false;
-
-        for (int i = 0; i < commentChars.length() && !quoted; i++)
-        {
-            final char c = commentChars.charAt(i);
-            if (value.indexOf(c) != -1)
-            {
-                quoted = true;
-            }
-        }
-
-        if (quoted)
+        boolean quoted = isQuoted(value);
+		if (quoted)
         {
             return '"' + value.replaceAll("\"", "\\\\\\\"") + '"';
         }
         return value;
     }
+
+	private boolean isQuoted(final String value) {
+		final String commentChars = getCommentLeadingCharsUsedInInput();
+		boolean quoted = false;
+		for (int i = 0; i < commentChars.length() && !quoted; i++) {
+			final char c = commentChars.charAt(i);
+			if (value.indexOf(c) != -1) {
+				quoted = true;
+			}
+		}
+		return quoted;
+	}
 
     /**
      * Determine if the given line is a comment line.

@@ -139,22 +139,31 @@ class XMLDocumentHelper
     public static XMLDocumentHelper forSourceDocument(final Document srcDoc)
             throws ConfigurationException
     {
-        String pubID;
-        String sysID;
-        if (srcDoc.getDoctype() != null)
-        {
-            pubID = srcDoc.getDoctype().getPublicId();
-            sysID = srcDoc.getDoctype().getSystemId();
-        }
-        else
-        {
-            pubID = null;
-            sysID = null;
-        }
-
-        return new XMLDocumentHelper(copyDocument(srcDoc),
+        String pubID = getPubID(srcDoc);
+		String sysID = getSysID(srcDoc);
+		return new XMLDocumentHelper(copyDocument(srcDoc),
                 emptyElementMapping(), pubID, sysID);
     }
+
+	private static String getSysID(final Document srcDoc) {
+		String sysID;
+		if (srcDoc.getDoctype() != null) {
+			sysID = srcDoc.getDoctype().getSystemId();
+		} else {
+			sysID = null;
+		}
+		return sysID;
+	}
+
+	private static String getPubID(final Document srcDoc) {
+		String pubID;
+		if (srcDoc.getDoctype() != null) {
+			pubID = srcDoc.getDoctype().getPublicId();
+		} else {
+			pubID = null;
+		}
+		return pubID;
+	}
 
     /**
      * Returns the {@code Document} managed by this helper.

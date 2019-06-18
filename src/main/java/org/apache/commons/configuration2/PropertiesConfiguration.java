@@ -971,18 +971,22 @@ public class PropertiesConfiguration extends BaseConfiguration
             {
                 result[0] = matcher.group(IDX_KEY).trim();
 
-                String value = matcher.group(IDX_VALUE);
-                if (trimValue)
-                {
-                    value = value.trim();
-                }
-                result[1] = value;
+                String value = valueIDXLongmethod(trimValue, matcher);
+				result[1] = value;
 
                 result[2] = matcher.group(IDX_SEPARATOR);
             }
 
             return result;
         }
+
+		private static String valueIDXLongmethod(final boolean trimValue, final Matcher matcher) {
+			String value = matcher.group(IDX_VALUE);
+			if (trimValue) {
+				value = value.trim();
+			}
+			return value;
+		}
     } // class PropertiesReader
 
     /**
@@ -1526,17 +1530,8 @@ public class PropertiesConfiguration extends BaseConfiguration
                 // file
                 if (buffer.length() > 0)
                 {
-                    // index of the first non-whitespace character
-                    int i;
-                    for (i = 0; i < line.length(); i++)
-                    {
-                        if (!Character.isWhitespace(line.charAt(i)))
-                        {
-                            break;
-                        }
-                    }
-
-                    line = line.substring(i);
+                    int i = firstNonWhitespace(line);
+					line = line.substring(i);
                 }
 
                 if (checkCombineLines(line))
@@ -1552,6 +1547,17 @@ public class PropertiesConfiguration extends BaseConfiguration
             }
             return buffer.toString();
         }
+
+
+		private int firstNonWhitespace(String line) {
+			int i;
+			for (i = 0; i < line.length(); i++) {
+				if (!Character.isWhitespace(line.charAt(i))) {
+					break;
+				}
+			}
+			return i;
+		}
 
         @Override
         protected void parseProperty(final String line)

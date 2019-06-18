@@ -444,21 +444,21 @@ public class PatternSubtreeConfigurationWrapper extends BaseHierarchicalConfigur
      */
     private String makePath(final String item)
     {
-        String pathPattern;
-        if ((item.length() == 0 || item.startsWith("/")) && trailing)
-        {
-            pathPattern = path.substring(0, path.length() - 1);
-        }
-        else  if (!item.startsWith("/") || !trailing)
-        {
-            pathPattern = path + "/";
-        }
-        else
-        {
-            pathPattern = path;
-        }
-        return substitute(pathPattern) + item;
+        String pathPattern = pathPattern(item);
+		return substitute(pathPattern) + item;
     }
+
+	private String pathPattern(final String item) {
+		String pathPattern;
+		if ((item.length() == 0 || item.startsWith("/")) && trailing) {
+			pathPattern = path.substring(0, path.length() - 1);
+		} else if (!item.startsWith("/") || !trailing) {
+			pathPattern = path + "/";
+		} else {
+			pathPattern = path;
+		}
+		return pathPattern;
+	}
 
     /**
      * Uses this configuration's {@code ConfigurationInterpolator} to perform

@@ -490,16 +490,25 @@ public abstract class AbstractHierarchicalConfiguration<T> extends AbstractConfi
         final Iterator<QueryResult<T>> itNodes = fetchNodeList(key).iterator();
         final Iterator<?> itValues = getListDelimiterHandler().parse(newValue).iterator();
         final Map<QueryResult<T>, Object> changedValues =
-                new HashMap<>();
-        Collection<Object> additionalValues = null;
-        Collection<QueryResult<T>> removedItems = null;
+                new HashMap<>();        
 
         while (itNodes.hasNext() && itValues.hasNext())
         {
             changedValues.put(itNodes.next(), itValues.next());
         }
 
-        // Add additional nodes if necessary
+        Collection<Object> additionalValues = newNodesToAdd(itValues);
+
+        // Remove remaining nodes
+        Collection<QueryResult<T>> removedItems = nodesToRemove(itNodes);
+
+        return new NodeUpdateData<>(changedValues, additionalValues,
+                removedItems, key);
+    }
+
+	private Collection<Object> newNodesToAdd(final Iterator<?> itValues) {
+		Collection<Object> additionalValues = null;
+		
         if (itValues.hasNext())
         {
             additionalValues = new LinkedList<>();
@@ -508,9 +517,12 @@ public abstract class AbstractHierarchicalConfiguration<T> extends AbstractConfi
                 additionalValues.add(itValues.next());
             }
         }
+		return additionalValues;
+	}
 
-        // Remove remaining nodes
-        if (itNodes.hasNext())
+	private Collection<QueryResult<T>> nodesToRemove(final Iterator<QueryResult<T>> itNodes) {
+		Collection<QueryResult<T>> removedItems = null;
+		if (itNodes.hasNext())
         {
             removedItems = new LinkedList<>();
             while (itNodes.hasNext())
@@ -518,10 +530,8 @@ public abstract class AbstractHierarchicalConfiguration<T> extends AbstractConfi
                 removedItems.add(itNodes.next());
             }
         }
-
-        return new NodeUpdateData<>(changedValues, additionalValues,
-                removedItems, key);
-    }
+		return removedItems;
+	}
 
     /**
      * {@inheritDoc} This implementation uses the expression engine to generate a

@@ -918,21 +918,22 @@ public class DynamicCombinedConfiguration extends CombinedConfiguration
      */
     private void initChildConfiguration(final CombinedConfiguration config)
     {
-        if (loggerName != null)
-        {
-            config.setLogger(new ConfigurationLogger(loggerName));
-        }
-        config.setExpressionEngine(this.getExpressionEngine());
-        config.setConversionExpressionEngine(getConversionExpressionEngine());
-        config.setListDelimiterHandler(getListDelimiterHandler());
-        copyEventListeners(config);
-        for (final ConfigData data : configurations)
-        {
-            config.addConfiguration(data.getConfiguration(), data.getName(),
-                    data.getAt());
-        }
-        config.setSynchronizer(getSynchronizer());
+        configInitChild(config);
+		copyEventListeners(config);
     }
+
+	private void configInitChild(final CombinedConfiguration config) {
+		if (loggerName != null) {
+			config.setLogger(new ConfigurationLogger(loggerName));
+		}
+		config.setExpressionEngine(this.getExpressionEngine());
+		config.setConversionExpressionEngine(getConversionExpressionEngine());
+		config.setListDelimiterHandler(getListDelimiterHandler());
+		for (final ConfigData data : configurations) {
+			config.addConfiguration(data.getConfiguration(), data.getName(), data.getAt());
+		}
+		config.setSynchronizer(getSynchronizer());
+	}
 
     /**
      * Creates a {@code ConfigurationInterpolator} instance for performing local

@@ -1120,11 +1120,7 @@ public class CombinedConfiguration extends BaseHierarchicalConfiguration impleme
             builder.name(currentComponent);
             if (components.hasNext())
             {
-                final ImmutableNode.Builder childBuilder =
-                        new ImmutableNode.Builder();
-                prependAtPathComponent(childBuilder, components.next(),
-                        components, orgRoot);
-                builder.addChild(childBuilder.create());
+                ImmutableNode.Builder childBuilder = prependChild(builder, components, orgRoot);
             }
             else
             {
@@ -1133,6 +1129,14 @@ public class CombinedConfiguration extends BaseHierarchicalConfiguration impleme
                 builder.value(orgRoot.getValue());
             }
         }
+
+		private ImmutableNode.Builder prependChild(final ImmutableNode.Builder builder,
+				final Iterator<String> components, final ImmutableNode orgRoot) {
+			final ImmutableNode.Builder childBuilder = new ImmutableNode.Builder();
+			prependAtPathComponent(childBuilder, components.next(), components, orgRoot);
+			builder.addChild(childBuilder.create());
+			return childBuilder;
+		}
 
         /**
          * Obtains the root node of the wrapped configuration. If necessary, a
@@ -1176,11 +1180,14 @@ public class CombinedConfiguration extends BaseHierarchicalConfiguration impleme
             final Collection<String> result = new ArrayList<>();
             final DefaultConfigurationKey.KeyIterator it = new DefaultConfigurationKey(
                     AT_ENGINE, at).iterator();
-            while (it.hasNext())
-            {
-                result.add(it.nextKey());
-            }
-            return result;
+            addKeysToArray(result, it);
+			return result;
         }
+
+		private void addKeysToArray(final Collection<String> result, final DefaultConfigurationKey.KeyIterator it) {
+			while (it.hasNext()) {
+				result.add(it.nextKey());
+			}
+		}
     }
 }

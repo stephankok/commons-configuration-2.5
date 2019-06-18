@@ -134,20 +134,23 @@ final class XMLListReference
     public static boolean isFirstListItem(final ImmutableNode node,
             final ReferenceNodeHandler handler)
     {
-        final ImmutableNode parent = handler.getParent(node);
-        ImmutableNode firstItem = null;
-        int idx = 0;
-        while (firstItem == null)
-        {
-            final ImmutableNode child = handler.getChild(parent, idx);
-            if (nameEquals(node, child))
-            {
-                firstItem = child;
-            }
-            idx++;
-        }
-        return firstItem == node;
+        ImmutableNode firstItem = getFirstItem(node, handler);
+		return firstItem == node;
     }
+
+	private static ImmutableNode getFirstItem(final ImmutableNode node, final ReferenceNodeHandler handler) {
+		final ImmutableNode parent = handler.getParent(node);
+		ImmutableNode firstItem = null;
+		int idx = 0;
+		while (firstItem == null) {
+			final ImmutableNode child = handler.getChild(parent, idx);
+			if (nameEquals(node, child)) {
+				firstItem = child;
+			}
+			idx++;
+		}
+		return firstItem;
+	}
 
     /**
      * Constructs the concatenated string value of all items comprising the list

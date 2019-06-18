@@ -603,12 +603,16 @@ public class BaseHierarchicalConfiguration extends AbstractHierarchicalConfigura
      */
     private void initSubConfiguration(final BaseHierarchicalConfiguration sub)
     {
-        sub.setSynchronizer(getSynchronizer());
-        sub.setExpressionEngine(getExpressionEngine());
-        sub.setListDelimiterHandler(getListDelimiterHandler());
-        sub.setThrowExceptionOnMissing(isThrowExceptionOnMissing());
-        sub.getInterpolator().setParentInterpolator(getInterpolator());
+        subLongmethod(sub);
+		sub.getInterpolator().setParentInterpolator(getInterpolator());
     }
+
+	private void subLongmethod(final BaseHierarchicalConfiguration sub) {
+		sub.setSynchronizer(getSynchronizer());
+		sub.setExpressionEngine(getExpressionEngine());
+		sub.setListDelimiterHandler(getListDelimiterHandler());
+		sub.setThrowExceptionOnMissing(isThrowExceptionOnMissing());
+	}
 
     /**
      * Creates a listener which reacts on all changes on this configuration or

@@ -68,51 +68,56 @@ public final class ConfigurationConverter
     public static Properties getProperties(final ImmutableConfiguration config)
     {
         final Properties props = new Properties();
-        ListDelimiterHandler listHandler;
-        boolean useDelimiterHandler;
-
-        if (config instanceof AbstractConfiguration)
+        ListDelimiterHandler listHandler = abstractListHandler(config);
+		boolean useDelimiterHandler = instanceOfAbstractConfiguration(config);
+		
+		for (final Iterator<String> keys = config.getKeys(); keys.hasNext();)
         {
-            listHandler = ((AbstractConfiguration) config).getListDelimiterHandler();
-            useDelimiterHandler = true;
-        }
-        else
-        {
-            listHandler = null;
-            useDelimiterHandler = false;
-        }
-
-        for (final Iterator<String> keys = config.getKeys(); keys.hasNext();)
-        {
-            final String key = keys.next();
-            final List<Object> list = config.getList(key);
-
-            String propValue;
-            if (useDelimiterHandler)
-            {
-                try
-                {
-                    propValue =
-                            String.valueOf(listHandler.escapeList(list,
-                                    ListDelimiterHandler.NOOP_TRANSFORMER));
-                }
-                catch (final Exception ex)
-                {
-                    // obviously, the list handler does not support splitting
-                    useDelimiterHandler = false;
-                    propValue = listToString(list);
-                }
-            }
-            else
-            {
-                propValue = listToString(list);
-            }
-
+        	final String key = keys.next();
+            String propValue = propValue(config, listHandler, useDelimiterHandler, key);
             props.setProperty(key, propValue);
         }
 
         return props;
     }
+
+	private static boolean instanceOfAbstractConfiguration(final ImmutableConfiguration config) {
+		if (config instanceof AbstractConfiguration) {
+			return true;
+		}
+		return false;
+	}
+
+	private static ListDelimiterHandler abstractListHandler(final ImmutableConfiguration config) {
+		ListDelimiterHandler listHandler = null;
+		if (instanceOfAbstractConfiguration(config)) {
+			listHandler = ((AbstractConfiguration) config).getListDelimiterHandler();
+		}
+		return listHandler;
+	}
+
+	private static String propValue(final ImmutableConfiguration config, ListDelimiterHandler listHandler,
+			boolean useDelimiterHandler, final String key) {		
+		final List<Object> list = config.getList(key);
+		String propValue;
+		if (useDelimiterHandler) {
+			try {
+				propValue = String.valueOf(listHandler.escapeList(list, ListDelimiterHandler.NOOP_TRANSFORMER));
+			} catch (final Exception ex) {
+				useDelimiterHandler = false;
+				propValue = listToString(list);
+			}
+			try {
+				propValue = String.valueOf(listHandler.escapeList(list, ListDelimiterHandler.NOOP_TRANSFORMER));
+			} catch (final Exception ex) {
+				useDelimiterHandler = false;
+				propValue = listToString(list);
+			}
+		} else {
+			propValue = listToString(list);
+		}
+		return propValue;
+	}
 
     /**
      * Convert a Configuration class into a Properties class. List properties

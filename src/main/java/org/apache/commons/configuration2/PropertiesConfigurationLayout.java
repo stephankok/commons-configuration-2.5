@@ -488,31 +488,7 @@ public class PropertiesConfigurationLayout implements EventListener<Configuratio
                 if (config.propertyLoaded(reader.getPropertyName(),
                         reader.getPropertyValue()))
                 {
-                    final boolean contained = layoutData.containsKey(reader
-                            .getPropertyName());
-                    int blancLines = 0;
-                    int idx = checkHeaderComment(reader.getCommentLines());
-                    while (idx < reader.getCommentLines().size()
-                            && reader.getCommentLines().get(idx).length() < 1)
-                    {
-                        idx++;
-                        blancLines++;
-                    }
-                    final String comment = extractComment(reader.getCommentLines(),
-                            idx, reader.getCommentLines().size() - 1);
-                    final PropertyLayoutData data = fetchLayoutData(reader
-                            .getPropertyName());
-                    if (contained)
-                    {
-                        data.addComment(comment);
-                        data.setSingleLine(false);
-                    }
-                    else
-                    {
-                        data.setComment(comment);
-                        data.setBlancLines(blancLines);
-                        data.setSeparator(reader.getPropertySeparator());
-                    }
+                    readCommentLines(reader);
                 }
             }
 
@@ -528,6 +504,28 @@ public class PropertiesConfigurationLayout implements EventListener<Configuratio
             loadCounter.decrementAndGet();
         }
     }
+
+	private PropertiesConfigurationLayout.PropertyLayoutData readCommentLines(
+			final PropertiesConfiguration.PropertiesReader reader) {
+		final boolean contained = layoutData.containsKey(reader.getPropertyName());
+		int blancLines = 0;
+		int idx = checkHeaderComment(reader.getCommentLines());
+		while (idx < reader.getCommentLines().size() && reader.getCommentLines().get(idx).length() < 1) {
+			idx++;
+			blancLines++;
+		}
+		final String comment = extractComment(reader.getCommentLines(), idx, reader.getCommentLines().size() - 1);
+		final PropertyLayoutData data = fetchLayoutData(reader.getPropertyName());
+		if (contained) {
+			data.addComment(comment);
+			data.setSingleLine(false);
+		} else {
+			data.setComment(comment);
+			data.setBlancLines(blancLines);
+			data.setSeparator(reader.getPropertySeparator());
+		}
+		return data;
+	}
 
     /**
      * Writes the properties file to the given writer, preserving as much of its
@@ -600,11 +598,7 @@ public class PropertiesConfigurationLayout implements EventListener<Configuratio
         {
             if (ConfigurationEvent.ADD_PROPERTY.equals(event.getEventType()))
             {
-                final boolean contained =
-                        layoutData.containsKey(event.getPropertyName());
-                final PropertyLayoutData data =
-                        fetchLayoutData(event.getPropertyName());
-                data.setSingleLine(!contained);
+            	addEventProperty(event);
             }
             else if (ConfigurationEvent.CLEAR_PROPERTY.equals(event
                     .getEventType()))
@@ -622,6 +616,15 @@ public class PropertiesConfigurationLayout implements EventListener<Configuratio
             }
         }
     }
+    
+    private void addEventProperty(final ConfigurationEvent event) 
+    {
+    	final boolean contained =
+                layoutData.containsKey(event.getPropertyName());
+        final PropertyLayoutData data =
+                fetchLayoutData(event.getPropertyName());
+        data.setSingleLine(!contained);
+    }    
 
     /**
      * Returns a layout data object for the specified key. If this is a new key,
@@ -721,27 +724,24 @@ public class PropertiesConfigurationLayout implements EventListener<Configuratio
         }
         if (!comment)
         {
-            int pos = 0;
-            // find first comment character
-            while (PropertiesConfiguration.COMMENT_CHARS.indexOf(s
-                    .charAt(pos)) < 0)
-            {
-                pos++;
-            }
-
-            // Remove leading spaces
-            pos++;
-            while (pos < s.length()
-                    && Character.isWhitespace(s.charAt(pos)))
-            {
-                pos++;
-            }
-
-            return (pos < s.length()) ? s.substring(pos)
+            int pos = skipCommends(s);
+			return (pos < s.length()) ? s.substring(pos)
                     : StringUtils.EMPTY;
         }
         return COMMENT_PREFIX + s;
     }
+
+	private static int skipCommends(final String s) {
+		int pos = 0;
+		while (PropertiesConfiguration.COMMENT_CHARS.indexOf(s.charAt(pos)) < 0) {
+			pos++;
+		}
+		pos++;
+		while (pos < s.length() && Character.isWhitespace(s.charAt(pos))) {
+			pos++;
+		}
+		return pos;
+	}
 
     /**
      * Extracts a comment string from the given range of the specified comment

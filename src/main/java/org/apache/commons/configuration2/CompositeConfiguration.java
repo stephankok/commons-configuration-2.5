@@ -344,22 +344,24 @@ implements Cloneable
     @Override
     protected Object getPropertyInternal(final String key)
     {
-        Configuration firstMatchingConfiguration = null;
-        for (final Configuration config : configList)
-        {
-            if (config.containsKey(key))
-            {
-                firstMatchingConfiguration = config;
-                break;
-            }
-        }
-
-        if (firstMatchingConfiguration != null)
+        Configuration firstMatchingConfiguration = firstMatchingConfiguration(key);
+		if (firstMatchingConfiguration != null)
         {
             return firstMatchingConfiguration.getProperty(key);
         }
         return null;
     }
+
+	private Configuration firstMatchingConfiguration(final String key) {
+		Configuration firstMatchingConfiguration = null;
+		for (final Configuration config : configList) {
+			if (config.containsKey(key)) {
+				firstMatchingConfiguration = config;
+				break;
+			}
+		}
+		return firstMatchingConfiguration;
+	}
 
     @Override
     protected Iterator<String> getKeysInternal()

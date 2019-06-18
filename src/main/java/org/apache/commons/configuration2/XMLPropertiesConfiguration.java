@@ -208,12 +208,8 @@ public class XMLPropertiesConfiguration extends BaseConfiguration implements
     {
         final PrintWriter writer = new PrintWriter(out);
 
-        String encoding = (locator != null) ? locator.getEncoding() : null;
-        if (encoding == null)
-        {
-            encoding = DEFAULT_ENCODING;
-        }
-        writer.println("<?xml version=\"1.0\" encoding=\"" + encoding + "\"?>");
+        String encoding = getEncoding();
+		writer.println("<?xml version=\"1.0\" encoding=\"" + encoding + "\"?>");
         writer.println("<!DOCTYPE properties SYSTEM \"http://java.sun.com/dtd/properties.dtd\">");
         writer.println("<properties>");
 
@@ -241,6 +237,14 @@ public class XMLPropertiesConfiguration extends BaseConfiguration implements
         writer.println("</properties>");
         writer.flush();
     }
+
+	private String getEncoding() {
+		String encoding = (locator != null) ? locator.getEncoding() : null;
+		if (encoding == null) {
+			encoding = DEFAULT_ENCODING;
+		}
+		return encoding;
+	}
 
     /**
      * Write a property.

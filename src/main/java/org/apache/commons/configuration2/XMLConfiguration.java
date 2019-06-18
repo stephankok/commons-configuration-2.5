@@ -626,18 +626,26 @@ public class XMLConfiguration extends BaseHierarchicalConfiguration implements
             }
         }
 
-        boolean childrenFlag = false;
-        if (hasChildren || trimFlag)
-        {
-            childrenFlag = hasChildren || attributes.size() > 1;
-        }
-        final String text = determineValue(buffer.toString(), childrenFlag, trimFlag);
-        if (text.length() > 0 || (!childrenFlag && level != 0))
-        {
-            refValue.setValue(text);
-        }
-        return attributes;
+        checkFlags(refValue, level, trimFlag, attributes, buffer, hasChildren);
+		return attributes;
     }
+
+	private void checkFlags(final MutableObject<String> refValue, final int level, final boolean trimFlag,
+			final Map<String, String> attributes, final StringBuilder buffer, boolean hasChildren) {
+		boolean childrenFlag = childrenFlag(trimFlag, attributes, hasChildren);
+		final String text = determineValue(buffer.toString(), childrenFlag, trimFlag);
+		if (text.length() > 0 || (!childrenFlag && level != 0)) {
+			refValue.setValue(text);
+		}
+	}
+
+	private boolean childrenFlag(final boolean trimFlag, final Map<String, String> attributes, boolean hasChildren) {
+		boolean childrenFlag = false;
+		if (hasChildren || trimFlag) {
+			childrenFlag = hasChildren || attributes.size() > 1;
+		}
+		return childrenFlag;
+	}
 
     /**
      * Determines the value of a configuration node. This method mainly checks
@@ -706,18 +714,8 @@ public class XMLConfiguration extends BaseHierarchicalConfiguration implements
             final Map<ImmutableNode, Object> elemRefs)
     {
         ImmutableNode addedChildNode;
-        Collection<String> values;
-
-        if (value != null)
-        {
-            values = getListDelimiterHandler().split(value, trim);
-        }
-        else
-        {
-            values = Collections.emptyList();
-        }
-
-        if (values.size() > 1)
+        Collection<String> values = splitString(value, trim);
+		if (values.size() > 1)
         {
             final Map<ImmutableNode, Object> refs = isSingleElementList(elem) ? elemRefs : null;
             final Iterator<String> it = values.iterator();
@@ -730,11 +728,7 @@ public class XMLConfiguration extends BaseHierarchicalConfiguration implements
             // add multiple new children
             while (it.hasNext())
             {
-                final ImmutableNode.Builder c = new ImmutableNode.Builder();
-                c.name(addedChildNode.getNodeName());
-                c.value(it.next());
-                c.addAttributes(attrmap);
-                final ImmutableNode newChild = c.create();
+                ImmutableNode newChild = createNewChild(attrmap, it, addedChildNode);
                 parent.addChild(newChild);
                 XMLListReference.assignListReference(refs, newChild, null);
             }
@@ -755,6 +749,25 @@ public class XMLConfiguration extends BaseHierarchicalConfiguration implements
 
         return addedChildNode;
     }
+
+	private ImmutableNode createNewChild(final Map<String, String> attrmap, final Iterator<String> it,
+			ImmutableNode addedChildNode) {
+		final ImmutableNode.Builder c = new ImmutableNode.Builder();
+		c.name(addedChildNode.getNodeName());
+		c.value(it.next());
+		c.addAttributes(attrmap);
+		return c.create();
+	}
+
+	private Collection<String> splitString(final String value, final boolean trim) {
+		Collection<String> values;
+		if (value != null) {
+			values = getListDelimiterHandler().split(value, trim);
+		} else {
+			values = Collections.emptyList();
+		}
+		return values;
+	}
 
     /**
      * Checks whether an element defines a complete list. If this is the case,
@@ -1294,26 +1307,23 @@ public class XMLConfiguration extends BaseHierarchicalConfiguration implements
                 return elementNew;
             }
 
-            // special treatment for root node of the hierarchy
-            final Object reference = refHandler.getReference(node);
-            Node element;
-            if (reference instanceof XMLDocumentHelper)
-            {
-                element =
-                        ((XMLDocumentHelper) reference).getDocument()
-                                .getDocumentElement();
-            }
-            else if (reference instanceof XMLListReference)
-            {
-                element = ((XMLListReference) reference).getElement();
-            }
-            else
-            {
-                element = (Node) reference;
-            }
-            return (element != null) ? (Element) elementMapping.get(element)
+            Node element = getRootElement(node, refHandler);
+			return (element != null) ? (Element) elementMapping.get(element)
                     : document.getDocumentElement();
         }
+
+		private Node getRootElement(final ImmutableNode node, final ReferenceNodeHandler refHandler) {
+			final Object reference = refHandler.getReference(node);
+			Node element;
+			if (reference instanceof XMLDocumentHelper) {
+				element = ((XMLDocumentHelper) reference).getDocument().getDocumentElement();
+			} else if (reference instanceof XMLListReference) {
+				element = ((XMLListReference) reference).getElement();
+			} else {
+				element = (Node) reference;
+			}
+			return element;
+		}
 
         /**
          * Helper method for updating the values of all attributes of the

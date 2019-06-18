@@ -820,18 +820,24 @@ public class DatabaseConfiguration extends AbstractConfiguration
         {
             final PreparedStatement ps = createStatement(sql, nameCol);
 
-            int idx = 1;
-            for (final Object param : params)
+            int lastIndex = fillParams(params, ps);
+			if (nameCol && configurationNameColumn != null)
             {
-                ps.setObject(idx++, param);
-            }
-            if (nameCol && configurationNameColumn != null)
-            {
-                ps.setString(idx, configurationName);
+                ps.setString(lastIndex, configurationName);
             }
 
             return ps;
         }
+
+		private int fillParams(final Object[] params, final PreparedStatement ps)
+				throws java.sql.SQLException 
+		{
+            int idx = 1;
+			for (final Object param : params) {
+				ps.setObject(idx++, param);
+			}
+			return idx;
+		}
 
         /**
          * Creates a {@code PreparedStatement} for a query, initializes it and
