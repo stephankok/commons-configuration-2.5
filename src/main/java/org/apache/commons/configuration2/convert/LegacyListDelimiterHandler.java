@@ -170,11 +170,7 @@ public class LegacyListDelimiterHandler extends AbstractListDelimiterHandler
                 {
                     // found a list delimiter -> add token and
                     // resetDefaultFileSystem buffer
-                    String t = token.toString();
-                    if (trim)
-                    {
-                        t = t.trim();
-                    }
+                    String t = trimToken(trim, token);
                     list.add(t);
                     token = new StringBuilder();
                 }
@@ -197,16 +193,19 @@ public class LegacyListDelimiterHandler extends AbstractListDelimiterHandler
         {
             token.append(esc);
         }
-        // Add last token
-        String t = token.toString();
-        if (trim)
-        {
-            t = t.trim();
-        }
-        list.add(t);
+        String t = trimToken(trim, token);
+		list.add(t);
 
         return list;
     }
+
+	private String trimToken(final boolean trim, StringBuilder token) {
+		String t = token.toString();
+		if (trim) {
+			t = t.trim();
+		}
+		return t;
+	}
 
     /**
      * {@inheritDoc} This is just a dummy implementation. It is never called.

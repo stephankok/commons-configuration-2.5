@@ -164,11 +164,7 @@ public class DefaultListDelimiterHandler extends AbstractListDelimiterHandler
                 {
                     // found a list delimiter -> add token and
                     // reset buffer
-                    String t = token.toString();
-                    if (trim)
-                    {
-                        t = t.trim();
-                    }
+                    String t = trimToken(trim, token);
                     list.add(t);
                     token = new StringBuilder();
                 }
@@ -189,14 +185,17 @@ public class DefaultListDelimiterHandler extends AbstractListDelimiterHandler
         {
             token.append(ESCAPE);
         }
-        // Add last token
-        String t = token.toString();
-        if (trim)
-        {
-            t = t.trim();
-        }
-        list.add(t);
+        String t = trimToken(trim, token);
+		list.add(t);
 
         return list;
     }
+
+	private String trimToken(final boolean trim, StringBuilder token) {
+		String t = token.toString();
+		if (trim) {
+			t = t.trim();
+		}
+		return t;
+	}
 }

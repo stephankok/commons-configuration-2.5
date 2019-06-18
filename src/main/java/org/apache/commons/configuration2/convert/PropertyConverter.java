@@ -674,13 +674,8 @@ final class PropertyConverter
                 throw new ConversionException("The value " + value + " can't be converted to a Color");
             }
 
-            // remove the leading #
-            if (color.startsWith("#"))
-            {
-                color = color.substring(1);
-            }
-
-            try
+            color = removeHash(color);
+			try
             {
                 // parse the components
                 for (int i = 0; i < components.length; i++)
@@ -688,18 +683,8 @@ final class PropertyConverter
                     components[i] = Integer.parseInt(color.substring(2 * i, 2 * i + 2), HEX_RADIX);
                 }
 
-                // parse the transparency
-                int alpha;
-                if (color.length() >= minlength + 2)
-                {
-                    alpha = Integer.parseInt(color.substring(minlength, minlength + 2), HEX_RADIX);
-                }
-                else
-                {
-                    alpha = Color.black.getAlpha();
-                }
-
-                return new Color(components[0], components[1], components[2], alpha);
+                int alpha = parseTransparency(color, minlength);
+				return new Color(components[0], components[1], components[2], alpha);
             }
             catch (final Exception e)
             {
@@ -711,6 +696,23 @@ final class PropertyConverter
             throw new ConversionException("The value " + value + " can't be converted to a Color");
         }
     }
+
+	private static String removeHash(String color) {
+		if (color.startsWith("#")) {
+			color = color.substring(1);
+		}
+		return color;
+	}
+
+	private static int parseTransparency(String color, final int minlength) throws java.lang.NumberFormatException {
+		int alpha;
+		if (color.length() >= minlength + 2) {
+			alpha = Integer.parseInt(color.substring(minlength, minlength + 2), HEX_RADIX);
+		} else {
+			alpha = Color.black.getAlpha();
+		}
+		return alpha;
+	}
 
     /**
      * Convert the specified value into an internet address.

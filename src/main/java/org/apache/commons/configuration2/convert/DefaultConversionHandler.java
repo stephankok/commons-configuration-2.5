@@ -371,18 +371,23 @@ public class DefaultConversionHandler implements ConversionHandler
                 return array;
             }
         }
-
-        final Collection<?> values = extractValues(src);
-        final Class<?> targetClass = ClassUtils.primitiveToWrapper(elemClass);
-        final Object array = Array.newInstance(elemClass, values.size());
-        int idx = 0;
-        for (final Object value : values)
-        {
-            Array.set(array, idx++,
-                    convertValue(ci.interpolate(value), targetClass, ci));
-        }
-        return array;
+        
+		return convertToPrimitiveTypes(src, elemClass, ci);
     }
+
+	private Object convertToPrimitiveTypes(final Object src, final Class<?> elemClass, final ConfigurationInterpolator ci)
+			throws java.lang.NegativeArraySizeException, java.lang.IllegalArgumentException,
+			java.lang.ArrayIndexOutOfBoundsException 
+	{
+		final Collection<?> values = extractValues(src);
+		final Class<?> targetClass = ClassUtils.primitiveToWrapper(elemClass);
+		final Object array = Array.newInstance(elemClass, values.size());
+		int idx = 0;
+		for (final Object value : values) {
+			Array.set(array, idx++, convertValue(ci.interpolate(value), targetClass, ci));
+		}
+		return array;
+	}
 
     /**
      * Helper method for converting all values of a source object and storing
