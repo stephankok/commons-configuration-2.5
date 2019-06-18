@@ -418,26 +418,9 @@ public class CatalogResolver implements EntityResolver
             {
                 for (int count = 0; count < catalogs.size(); count++)
                 {
-                    final String fileName = catalogs.elementAt(count);
+                	final String fileName = catalogs.elementAt(count);
+                    InputStream is = getInputSTream(base, catalogs, count, fileName);
 
-                    URL url = null;
-                    InputStream is = null;
-
-                    try
-                    {
-                        url = locate(fs, base, fileName);
-                        if (url != null)
-                        {
-                            is = fs.getInputStream(url);
-                        }
-                    }
-                    catch (final ConfigurationException ce)
-                    {
-                        final String name = url.toString();
-                        // Ignore the exception.
-                        catalogManager.debug.message(DEBUG_ALL,
-                            "Unable to get input stream for " + name + ". " + ce.getMessage());
-                    }
                     if (is != null)
                     {
                         final String mimeType = fileNameMap.getContentTypeFor(fileName);
@@ -466,6 +449,22 @@ public class CatalogResolver implements EntityResolver
             }
 
         }
+
+		private InputStream getInputSTream(final String base, final Vector<String> catalogs, int count, String fileName) {			
+			URL url = null;
+			InputStream is = null;
+			try {
+				url = locate(fs, base, fileName);
+				if (url != null) {
+					is = fs.getInputStream(url);
+				}
+			} catch (final ConfigurationException ce) {
+				final String name = url.toString();
+				catalogManager.debug.message(DEBUG_ALL,
+						"Unable to get input stream for " + name + ". " + ce.getMessage());
+			}
+			return is;
+		}
 
         /**
          * Parse the specified catalog file.

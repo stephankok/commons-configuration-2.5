@@ -86,14 +86,8 @@ public class DefaultEntityResolver implements EntityResolver, EntityRegistry
     public InputSource resolveEntity(final String publicId, final String systemId)
             throws SAXException
     {
-        // Has this system identifier been registered?
-        URL entityURL = null;
-        if (publicId != null)
-        {
-            entityURL = getRegisteredEntities().get(publicId);
-        }
-
-        if (entityURL != null)
+        URL entityURL = getEntityURL(publicId);
+		if (entityURL != null)
         {
             // Obtain an InputSource for this URL. This code is based on the
             // createInputSourceFromURL() method of Commons Digester.
@@ -114,6 +108,14 @@ public class DefaultEntityResolver implements EntityResolver, EntityRegistry
         // default processing behavior
         return null;
     }
+
+	private URL getEntityURL(final String publicId) {
+		URL entityURL = null;
+		if (publicId != null) {
+			entityURL = getRegisteredEntities().get(publicId);
+		}
+		return entityURL;
+	}
 
     /**
      * Returns a map with the entity IDs that have been registered using the
