@@ -135,14 +135,20 @@ public class CombinedBuilderParametersImpl extends BasicBuilderParameters
     {
         super.inheritFrom(source);
 
-        final CombinedBuilderParametersImpl srcParams = fromParameters(source);
-        if (srcParams != null)
+        CombinedBuilderParametersImpl srcParams = srcParamsLongmethod(source);
+		if (srcParams != null)
         {
-            setChildDefaultParametersManager(
-                    srcParams.getChildDefaultParametersManager());
             setInheritSettings(srcParams.isInheritSettings());
         }
     }
+
+	private CombinedBuilderParametersImpl srcParamsLongmethod(final Map<String, ?> source) {
+		final CombinedBuilderParametersImpl srcParams = fromParameters(source);
+		if (srcParams != null) {
+			setChildDefaultParametersManager(srcParams.getChildDefaultParametersManager());
+		}
+		return srcParams;
+	}
 
     /**
      * Returns the current value of the flag that controls whether the settings

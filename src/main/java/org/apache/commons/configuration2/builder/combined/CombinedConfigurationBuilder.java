@@ -1094,15 +1094,19 @@ public class CombinedConfigurationBuilder extends BasicConfigurationBuilder<Comb
     private void setUpParentInterpolator(final Configuration resultConfig,
             final Configuration defConfig)
     {
-        parentInterpolator = new ConfigurationInterpolator();
-        parentInterpolator.addDefaultLookup(new ConfigurationLookup(
+        ConfigurationInterpolator defInterpolator = defInterpolator(defConfig);
+		parentInterpolator.addDefaultLookup(new ConfigurationLookup(
                 resultConfig));
-        final ConfigurationInterpolator defInterpolator = defConfig.getInterpolator();
-        if (defInterpolator != null)
-        {
-            defInterpolator.setParentInterpolator(parentInterpolator);
-        }
     }
+
+	private ConfigurationInterpolator defInterpolator(final Configuration defConfig) {
+		parentInterpolator = new ConfigurationInterpolator();
+		final ConfigurationInterpolator defInterpolator = defConfig.getInterpolator();
+		if (defInterpolator != null) {
+			defInterpolator.setParentInterpolator(parentInterpolator);
+		}
+		return defInterpolator;
+	}
 
     /**
      * Initializes the default base path for all file-based child configuration
@@ -1357,11 +1361,14 @@ public class CombinedConfigurationBuilder extends BasicConfigurationBuilder<Comb
             final HierarchicalConfiguration<?> defConfig, final String key)
     {
         final List<Object> listNodes = defConfig.getList(key);
-        for (final Object listNode : listNodes)
-        {
-            cc.getNodeCombiner().addListNode((String) listNode);
-        }
+        addNodes(cc, listNodes);
     }
+
+	private static void addNodes(final CombinedConfiguration cc, final List<Object> listNodes) {
+		for (final Object listNode : listNodes) {
+			cc.getNodeCombiner().addListNode((String) listNode);
+		}
+	}
 
     /**
      * Creates the map with the default configuration builder providers.
@@ -1469,21 +1476,30 @@ public class CombinedConfigurationBuilder extends BasicConfigurationBuilder<Comb
 
             for (int i = 0; i < srcDecl.size(); i++)
             {
-                ConfigurationBuilder<? extends Configuration> b;
-                if (createBuilders)
+                ConfigurationBuilder<? extends Configuration> b = updateBuilders(ccResult, srcDecl, builders,
+						createBuilders, i);
+				if (createBuilders)
                 {
-                    b = createConfigurationBuilder(srcDecl.get(i));
                     newBuilders.add(b);
                 }
-                else
-                {
-                    b = builders.get(i);
-                }
-                addChildConfiguration(ccResult, srcDecl.get(i), b);
             }
 
             return newBuilders;
         }
+
+		private ConfigurationBuilder<? extends Configuration> updateBuilders(final CombinedConfiguration ccResult,
+				final List<ConfigurationDeclaration> srcDecl,
+				final List<ConfigurationBuilder<? extends Configuration>> builders, final boolean createBuilders, int i)
+				throws org.apache.commons.configuration2.ex.ConfigurationException {
+			ConfigurationBuilder<? extends Configuration> b;
+			if (createBuilders) {
+				b = createConfigurationBuilder(srcDecl.get(i));
+			} else {
+				b = builders.get(i);
+			}
+			addChildConfiguration(ccResult, srcDecl.get(i), b);
+			return b;
+		}
 
         /**
          * Frees resources used by this object and performs clean up. This
