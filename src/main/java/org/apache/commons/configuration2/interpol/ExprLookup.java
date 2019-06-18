@@ -259,20 +259,21 @@ public class ExprLookup implements Lookup
         }
         else
         {
-            final StringLookup variableResolver = new StringLookup()
-            {
-                @Override
-                public String lookup(final String key)
-                {
-                    final Object value = ip.resolve(key);
-                    return value != null ? value.toString() : null;
-                }
-            };
-            substitutor =
-                    new StringSubstitutor(variableResolver, prefixMatcher,
-                            suffixMatcher, StringSubstitutor.DEFAULT_ESCAPE);
+            startSubstitutor(ip);
         }
     }
+
+	private void startSubstitutor(final ConfigurationInterpolator ip) {
+		final StringLookup variableResolver = new StringLookup() {
+			@Override
+			public String lookup(final String key) {
+				final Object value = ip.resolve(key);
+				return value != null ? value.toString() : null;
+			}
+		};
+		substitutor = new StringSubstitutor(variableResolver, prefixMatcher, suffixMatcher,
+				StringSubstitutor.DEFAULT_ESCAPE);
+	}
 
     /**
      * Creates a new {@code JexlContext} and initializes it with the variables
