@@ -223,19 +223,25 @@ public class BaseEventSource implements EventSource
     {
         if (checkDetailEvents(-1))
         {
-            final EventListenerList.EventListenerIterator<T> it =
-                    eventListeners.getEventListenerIterator(type);
-            if (it.hasNext())
-            {
-                final ConfigurationEvent event =
-                        createEvent(type, propName, propValue, before);
-                while (it.hasNext())
-                {
-                    it.invokeNext(event);
-                }
-            }
+            EventListenerList.EventListenerIterator<T> it = configureEvent(type, propName, propValue, before);
         }
     }
+
+	private <T extends ConfigurationEvent> EventListenerList.EventListenerIterator<T> configureEvent(
+			final EventType<T> type, final String propName, final Object propValue, final boolean before) {
+		final EventListenerList.EventListenerIterator<T> it = eventListeners.getEventListenerIterator(type);
+		if (it.hasNext()) {
+			final ConfigurationEvent event = createEvent(type, propName, propValue, before);
+			invokeEvent(it, event);
+		}
+		return it;
+	}
+
+	private void invokeEvent(final EventListenerList.EventListenerIterator<?> it, final ConfigurationEvent event) {
+		while (it.hasNext()) {
+			it.invokeNext(event);
+		}
+	}
 
     /**
      * Creates a {@code ConfigurationEvent} object based on the passed in
@@ -276,15 +282,24 @@ public class BaseEventSource implements EventSource
                 eventListeners.getEventListenerIterator(eventType);
         if (iterator.hasNext())
         {
-            final ConfigurationErrorEvent event =
-                    createErrorEvent(eventType, operationType, propertyName,
-                            propertyValue, cause);
-            while (iterator.hasNext())
-            {
-                iterator.invokeNext(event);
-            }
+            configureErrorEvent(eventType, operationType, propertyName, propertyValue, cause, iterator);
         }
     }
+
+	private <T extends ConfigurationErrorEvent> void configureErrorEvent(final EventType<T> eventType,
+			final EventType<?> operationType, final String propertyName, final Object propertyValue,
+			final Throwable cause, final EventListenerList.EventListenerIterator<T> iterator) {
+		final ConfigurationErrorEvent event = createErrorEvent(eventType, operationType, propertyName, propertyValue,
+				cause);
+		invokeErrorEvent(iterator, event);
+	}
+
+	private void invokeErrorEvent(final EventListenerList.EventListenerIterator<?> iterator,
+			final ConfigurationErrorEvent event) {
+		while (iterator.hasNext()) {
+			iterator.invokeNext(event);
+		}
+	}
 
     /**
      * Creates a {@code ConfigurationErrorEvent} object based on the passed in
