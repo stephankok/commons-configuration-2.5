@@ -723,7 +723,13 @@ public class FileHandler
      */
     public void load(final File file) throws ConfigurationException
     {
-        URL url;
+        URL url = creatURL(file);
+		load(url);
+    }
+
+	private URL creatURL(final File file) throws ConfigurationException
+	{
+		URL url;
         try
         {
             url = FileLocatorUtils.toURL(file);
@@ -733,9 +739,8 @@ public class FileHandler
             throw new ConfigurationException("Cannot create URL from file "
                     + file);
         }
-
-        load(url);
-    }
+        return url;
+	}
 
     /**
      * Loads the associated file from the specified URL. The location stored in
@@ -1095,29 +1100,36 @@ public class FileHandler
     private void loadFromTransformedStream(final InputStream in, final String encoding)
             throws ConfigurationException
     {
-        Reader reader = null;
-
-        if (encoding != null)
-        {
-            try
-            {
-                reader = new InputStreamReader(in, encoding);
-            }
-            catch (final UnsupportedEncodingException e)
-            {
-                throw new ConfigurationException(
-                        "The requested encoding is not supported, try the default encoding.",
-                        e);
-            }
-        }
-
-        if (reader == null)
-        {
-            reader = new InputStreamReader(in);
-        }
-
-        loadFromReader(reader);
+        Reader reader = newReader(in, encoding);
+		loadFromReader(reader);
     }
+
+	private Reader newReader(final InputStream in, final String encoding)
+			throws org.apache.commons.configuration2.ex.ConfigurationException {
+		Reader reader = null;
+		if (encoding != null) {
+			reader = readWithEncoding(in, encoding, reader);
+		}
+		if (reader == null) {
+			reader = new InputStreamReader(in);
+		}
+		return reader;
+	}
+
+	private Reader readWithEncoding(final InputStream in, final String encoding, Reader reader)
+			throws ConfigurationException {
+		try
+		{
+		    reader = new InputStreamReader(in, encoding);
+		}
+		catch (final UnsupportedEncodingException e)
+		{
+		    throw new ConfigurationException(
+		            "The requested encoding is not supported, try the default encoding.",
+		            e);
+		}
+		return reader;
+	}
 
     /**
      * Internal helper method for loading a file from the given reader.

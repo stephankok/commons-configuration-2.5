@@ -205,20 +205,8 @@ public class VFSFileSystem extends DefaultFileSystem
         }
         try
         {
-            final FileSystemManager fsManager = VFS.getManager();
-
-            FileName path;
-            if (basePath != null && UriParser.extractScheme(file) == null)
-            {
-                final FileName base = fsManager.resolveURI(basePath);
-                path = fsManager.resolveName(base, file);
-            }
-            else
-            {
-                path = fsManager.resolveURI(file);
-            }
-
-            final URLStreamHandler handler = new VFSURLStreamHandler(path);
+            FileName path = filePathFromBase(basePath, file);
+			final URLStreamHandler handler = new VFSURLStreamHandler(path);
             return new URL(null, path.getURI(), handler);
         }
         catch (final FileSystemException fse)
@@ -227,6 +215,19 @@ public class VFSFileSystem extends DefaultFileSystem
                 + " and fileName: " + file, fse);
         }
     }
+
+	private FileName filePathFromBase(final String basePath, final String file)
+			throws org.apache.commons.vfs2.FileSystemException {
+		final FileSystemManager fsManager = VFS.getManager();
+		FileName path;
+		if (basePath != null && UriParser.extractScheme(file) == null) {
+			final FileName base = fsManager.resolveURI(basePath);
+			path = fsManager.resolveName(base, file);
+		} else {
+			path = fsManager.resolveURI(file);
+		}
+		return path;
+	}
 
     @Override
     public URL locateFromURL(final String basePath, final String fileName)
@@ -240,31 +241,9 @@ public class VFSFileSystem extends DefaultFileSystem
         }
         try
         {
-            final FileSystemManager fsManager = VFS.getManager();
-
-            FileObject file;
-            // Only use the base path if the file name doesn't have a scheme.
-            if (basePath != null && fileScheme == null)
-            {
-                final String scheme = UriParser.extractScheme(basePath);
-                final FileSystemOptions opts = (scheme != null) ? getOptions(scheme) : null;
-                FileObject base = (opts == null) ? fsManager.resolveFile(basePath)
-                        : fsManager.resolveFile(basePath, opts);
-                if (base.getType() == FileType.FILE)
-                {
-                    base = base.getParent();
-                }
-
-                file = fsManager.resolveFile(base, fileName);
-            }
-            else
-            {
-                final FileSystemOptions opts = (fileScheme != null) ? getOptions(fileScheme) : null;
-                file = (opts == null) ? fsManager.resolveFile(fileName)
-                        : fsManager.resolveFile(fileName, opts);
-            }
-
-            if (!file.exists())
+            FileObject file = getFilePath(basePath, fileName, fileScheme);
+            
+			if (!file.exists())
             {
                 return null;
             }
@@ -282,19 +261,37 @@ public class VFSFileSystem extends DefaultFileSystem
         }
     }
 
+	private FileObject getFilePath(final String basePath, final String fileName, final String fileScheme)
+			throws org.apache.commons.vfs2.FileSystemException {
+		final FileSystemManager fsManager = VFS.getManager();
+		FileObject file;
+		if (basePath != null && fileScheme == null) {
+			FileObject base = baseLongmethod(basePath, fsManager);
+			file = fsManager.resolveFile(base, fileName);
+		} else {
+			final FileSystemOptions opts = (fileScheme != null) ? getOptions(fileScheme) : null;
+			file = (opts == null) ? fsManager.resolveFile(fileName) : fsManager.resolveFile(fileName, opts);
+		}
+		return file;
+	}
+
+	private FileObject baseLongmethod(final String basePath, final FileSystemManager fsManager)
+			throws org.apache.commons.vfs2.FileSystemException {
+		final String scheme = UriParser.extractScheme(basePath);
+		final FileSystemOptions opts = (scheme != null) ? getOptions(scheme) : null;
+		FileObject base = (opts == null) ? fsManager.resolveFile(basePath) : fsManager.resolveFile(basePath, opts);
+		if (base.getType() == FileType.FILE) {
+			base = base.getParent();
+		}
+		return base;
+	}
+
     private FileSystemOptions getOptions(final String scheme)
     {
         final FileSystemOptions opts = new FileSystemOptions();
-        FileSystemConfigBuilder builder;
-        try
-        {
-            builder = VFS.getManager().getFileSystemConfigBuilder(scheme);
-        }
-        catch (final Exception ex)
-        {
-            return null;
-        }
-        final FileOptionsProvider provider = getFileOptionsProvider();
+        FileSystemConfigBuilder builder = createBuilder(scheme);
+        
+		final FileOptionsProvider provider = getFileOptionsProvider();
         if (provider != null)
         {
             final Map<String, Object> map = provider.getOptions();
@@ -307,12 +304,8 @@ public class VFSFileSystem extends DefaultFileSystem
             {
                 try
                 {
-                    String key = entry.getKey();
-                    if (FileOptionsProvider.CURRENT_USER.equals(key))
-                    {
-                        key = "creatorName";
-                    }
-                    setProperty(builder, opts, key, entry.getValue());
+                    String key = getKey(entry);
+					setProperty(builder, opts, key, entry.getValue());
                     ++count;
                 }
                 catch (final Exception ex)
@@ -330,21 +323,34 @@ public class VFSFileSystem extends DefaultFileSystem
 
     }
 
+	private String getKey(final Map.Entry<String, Object> entry) {
+		String key = entry.getKey();
+		if (FileOptionsProvider.CURRENT_USER.equals(key)) {
+			key = "creatorName";
+		}
+		return key;
+	}
+
+	private FileSystemConfigBuilder createBuilder(final String scheme) {
+		FileSystemConfigBuilder builder;
+		try {
+			builder = VFS.getManager().getFileSystemConfigBuilder(scheme);
+		} catch (final Exception ex) {
+			return null;
+		}
+		return builder;
+	}
+
     private void setProperty(final FileSystemConfigBuilder builder, final FileSystemOptions options,
                              final String key, final Object value)
     {
         final String methodName = "set" + key.substring(0, 1).toUpperCase() + key.substring(1);
-        final Class<?>[] paramTypes = new Class<?>[2];
-        paramTypes[0] = FileSystemOptions.class;
-        paramTypes[1] = value.getClass();
-
-        try
+        Class<?>[] paramTypes = getParamTypes(value);
+		try
         {
             final Method method = builder.getClass().getMethod(methodName, paramTypes);
-            final Object[] params = new Object[2];
-            params[0] = options;
-            params[1] = value;
-            method.invoke(builder, params);
+            Object[] params = setParams(options, value);
+			method.invoke(builder, params);
         }
         catch (final Exception ex)
         {
@@ -352,6 +358,20 @@ public class VFSFileSystem extends DefaultFileSystem
         }
 
     }
+
+	private Object[] setParams(final FileSystemOptions options, final Object value) {
+		final Object[] params = new Object[2];
+		params[0] = options;
+		params[1] = value;
+		return params;
+	}
+
+	private Class<?>[] getParamTypes(final Object value) {
+		final Class<?>[] paramTypes = new Class<?>[2];
+		paramTypes[0] = FileSystemOptions.class;
+		paramTypes[1] = value.getClass();
+		return paramTypes;
+	}
 
     /**
      * Stream handler required to create URL.
