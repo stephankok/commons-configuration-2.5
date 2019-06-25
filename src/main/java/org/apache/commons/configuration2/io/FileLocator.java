@@ -82,11 +82,11 @@ public final class FileLocator
      */
     public FileLocator(final FileLocatorBuilder builder)
     {
-        fileName = builder.fileName;
-        basePath = builder.basePath;
-        sourceURL = builder.sourceURL;
-        encoding = builder.encoding;
-        fileSystem = builder.fileSystem;
+        fileName = builder.file.getFileName();
+        basePath = builder.file.getBasePath();
+        sourceURL = builder.file.getSourceURL();
+        encoding = builder.file.getEncoding();
+        fileSystem = builder.file.getFileSystem();
         locationStrategy = builder.locationStrategy;
     }
 
@@ -241,20 +241,8 @@ public final class FileLocator
      */
     public static final class FileLocatorBuilder
     {
-        /** The file name. */
-        private String fileName;
-
-        /** The base path. */
-        private String basePath;
-
-        /** The source URL. */
-        private URL sourceURL;
-
-        /** The encoding. */
-        private String encoding;
-
-        /** The file system. */
-        private FileSystem fileSystem;
+        /** The file */
+        private File file = new File();
 
         /** The location strategy. */
         private FileLocationStrategy locationStrategy;
@@ -282,7 +270,7 @@ public final class FileLocator
          */
         public FileLocatorBuilder encoding(final String enc)
         {
-            encoding = enc;
+            file.setEncoding(enc);
             return this;
         }
 
@@ -294,7 +282,7 @@ public final class FileLocator
          */
         public FileLocatorBuilder fileSystem(final FileSystem fs)
         {
-            fileSystem = fs;
+            file.setFileSystem(fs);
             return this;
         }
 
@@ -306,7 +294,7 @@ public final class FileLocator
          */
         public FileLocatorBuilder basePath(final String path)
         {
-            basePath = path;
+            file.setBasePath(path);
             return this;
         }
 
@@ -318,7 +306,7 @@ public final class FileLocator
          */
         public FileLocatorBuilder fileName(final String name)
         {
-            fileName = name;
+            file.setFileName(name);
             return this;
         }
 
@@ -330,7 +318,7 @@ public final class FileLocator
          */
         public FileLocatorBuilder sourceURL(final URL url)
         {
-            sourceURL = url;
+            file.setSourceURL(url);
             return this;
         }
 
@@ -366,11 +354,11 @@ public final class FileLocator
          */
         private void initBuilder(final FileLocator src)
         {
-            basePath = src.getBasePath();
-            fileName = src.getFileName();
-            sourceURL = src.getSourceURL();
-            encoding = src.getEncoding();
-            fileSystem = src.getFileSystem();
+            file.setBasePath(src.getBasePath());
+            file.setFileName(src.getFileName());
+            file.setSourceURL(src.getSourceURL());
+            file.setEncoding(src.getEncoding());
+            file.setFileSystem(src.getFileSystem());
             locationStrategy = src.getLocationStrategy();
         }
     }
