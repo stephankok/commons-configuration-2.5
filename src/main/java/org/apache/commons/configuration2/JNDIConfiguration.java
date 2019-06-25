@@ -45,17 +45,13 @@ import org.apache.commons.lang3.StringUtils;
  */
 public class JNDIConfiguration extends AbstractConfiguration
 {
-    /** The prefix of the context. */
-    private String prefix;
+    private JNDIConfigurationProduct jNDIConfigurationProduct = new JNDIConfigurationProduct();
 
-    /** The initial JNDI context. */
-    private Context context;
+	/** The prefix of the context. */
+    private String prefix;
 
     /** The base JNDI context. */
     private Context baseContext;
-
-    /** The Set of keys that have been virtually cleared. */
-    private final Set<String> clearedProperties = new HashSet<>();
 
     /**
      * Creates a JNDIConfiguration using the default initial context as the
@@ -101,7 +97,7 @@ public class JNDIConfiguration extends AbstractConfiguration
      */
     public JNDIConfiguration(final Context context, final String prefix)
     {
-        this.context = context;
+        jNDIConfigurationProduct.setContext2(context);
         this.prefix = prefix;
         initLogger(new ConfigurationLogger(JNDIConfiguration.class));
         addErrorLogListener();
@@ -337,7 +333,7 @@ public class JNDIConfiguration extends AbstractConfiguration
     @Override
     protected void clearPropertyDirect(final String key)
     {
-        clearedProperties.add(key);
+        jNDIConfigurationProduct.getClearedProperties().add(key);
     }
 
     /**
@@ -349,7 +345,7 @@ public class JNDIConfiguration extends AbstractConfiguration
     @Override
     protected boolean containsKeyInternal(String key)
     {
-        if (clearedProperties.contains(key))
+        if (jNDIConfigurationProduct.getClearedProperties().contains(key))
         {
             return false;
         }
@@ -404,7 +400,7 @@ public class JNDIConfiguration extends AbstractConfiguration
     @Override
     protected Object getPropertyInternal(String key)
     {
-        if (clearedProperties.contains(key))
+        if (jNDIConfigurationProduct.getClearedProperties().contains(key))
         {
             return null;
         }
@@ -470,7 +466,7 @@ public class JNDIConfiguration extends AbstractConfiguration
      */
     public Context getContext()
     {
-        return context;
+        return jNDIConfigurationProduct.getContext();
     }
 
     /**
@@ -480,10 +476,12 @@ public class JNDIConfiguration extends AbstractConfiguration
      */
     public void setContext(final Context context)
     {
-        // forget the removed properties
-        clearedProperties.clear();
-
-        // change the context
-        this.context = context;
+        jNDIConfigurationProduct.setContext(context);
     }
+
+	public Object clone() throws java.lang.CloneNotSupportedException {
+		JNDIConfiguration clone = (JNDIConfiguration) super.clone();
+		clone.jNDIConfigurationProduct = (JNDIConfigurationProduct) this.jNDIConfigurationProduct.clone();
+		return clone;
+	}
 }
