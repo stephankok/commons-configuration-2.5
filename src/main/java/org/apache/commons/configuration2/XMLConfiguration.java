@@ -193,7 +193,9 @@ import org.xml.sax.helpers.DefaultHandler;
 public class XMLConfiguration extends BaseHierarchicalConfiguration implements
         FileBasedConfiguration, FileLocatorAware, InputStreamSupport
 {
-    /** Constant for the default root element name. */
+    private XMLConfigurationProduct xMLConfigurationProduct = new XMLConfigurationProduct();
+
+	/** Constant for the default root element name. */
     private static final String DEFAULT_ROOT_NAME = "configuration";
 
     /** Constant for the name of the space attribute.*/
@@ -206,11 +208,11 @@ public class XMLConfiguration extends BaseHierarchicalConfiguration implements
     private static final String VALUE_PRESERVE = "preserve";
 
     /** Schema Langauge key for the parser */
-    private static final String JAXP_SCHEMA_LANGUAGE =
+    public static final String JAXP_SCHEMA_LANGUAGE =
         "http://java.sun.com/xml/jaxp/properties/schemaLanguage";
 
     /** Schema Language for the parser */
-    private static final String W3C_XML_SCHEMA =
+    public static final String W3C_XML_SCHEMA =
         "http://www.w3.org/2001/XMLSchema";
 
     /** Stores the name of the root element. */
@@ -221,18 +223,6 @@ public class XMLConfiguration extends BaseHierarchicalConfiguration implements
 
     /** Stores the system ID from the DOCTYPE.*/
     private String systemID;
-
-    /** Stores the document builder that should be used for loading.*/
-    private DocumentBuilder documentBuilder;
-
-    /** Stores a flag whether DTD or Schema validation should be performed.*/
-    private boolean validating;
-
-    /** Stores a flag whether DTD or Schema validation is used */
-    private boolean schemaValidation;
-
-    /** The EntityResolver to use */
-    private EntityResolver entityResolver = new DefaultEntityResolver();
 
     /** The current file locator. */
     private FileLocator locator;
@@ -324,7 +314,7 @@ public class XMLConfiguration extends BaseHierarchicalConfiguration implements
      */
     public DocumentBuilder getDocumentBuilder()
     {
-        return documentBuilder;
+        return xMLConfigurationProduct.getDocumentBuilder();
     }
 
     /**
@@ -339,7 +329,7 @@ public class XMLConfiguration extends BaseHierarchicalConfiguration implements
      */
     public void setDocumentBuilder(final DocumentBuilder documentBuilder)
     {
-        this.documentBuilder = documentBuilder;
+        xMLConfigurationProduct.setDocumentBuilder(documentBuilder);
     }
 
     /**
@@ -434,7 +424,7 @@ public class XMLConfiguration extends BaseHierarchicalConfiguration implements
      */
     public boolean isValidating()
     {
-        return validating;
+        return xMLConfigurationProduct.getValidating();
     }
 
     /**
@@ -447,10 +437,7 @@ public class XMLConfiguration extends BaseHierarchicalConfiguration implements
      */
     public void setValidating(final boolean validating)
     {
-        if (!schemaValidation)
-        {
-            this.validating = validating;
-        }
+        xMLConfigurationProduct.setValidating(validating);
     }
 
 
@@ -462,7 +449,7 @@ public class XMLConfiguration extends BaseHierarchicalConfiguration implements
      */
     public boolean isSchemaValidation()
     {
-        return schemaValidation;
+        return xMLConfigurationProduct.getSchemaValidation();
     }
 
     /**
@@ -477,11 +464,7 @@ public class XMLConfiguration extends BaseHierarchicalConfiguration implements
      */
     public void setSchemaValidation(final boolean schemaValidation)
     {
-        this.schemaValidation = schemaValidation;
-        if (schemaValidation)
-        {
-            this.validating = true;
-        }
+        xMLConfigurationProduct.setSchemaValidation(schemaValidation);
     }
 
     /**
@@ -492,7 +475,7 @@ public class XMLConfiguration extends BaseHierarchicalConfiguration implements
      */
     public void setEntityResolver(final EntityResolver resolver)
     {
-        this.entityResolver = resolver;
+        xMLConfigurationProduct.setEntityResolver(resolver);
     }
 
     /**
@@ -502,7 +485,7 @@ public class XMLConfiguration extends BaseHierarchicalConfiguration implements
      */
     public EntityResolver getEntityResolver()
     {
-        return this.entityResolver;
+        return this.xMLConfigurationProduct.getEntityResolver();
     }
 
     /**
@@ -833,38 +816,7 @@ public class XMLConfiguration extends BaseHierarchicalConfiguration implements
     protected DocumentBuilder createDocumentBuilder()
             throws ParserConfigurationException
     {
-        if (getDocumentBuilder() != null)
-        {
-            return getDocumentBuilder();
-        }
-        final DocumentBuilderFactory factory = DocumentBuilderFactory
-                .newInstance();
-        if (isValidating())
-        {
-            factory.setValidating(true);
-            if (isSchemaValidation())
-            {
-                factory.setNamespaceAware(true);
-                factory.setAttribute(JAXP_SCHEMA_LANGUAGE, W3C_XML_SCHEMA);
-            }
-        }
-
-        final DocumentBuilder result = factory.newDocumentBuilder();
-        result.setEntityResolver(this.entityResolver);
-
-        if (isValidating())
-        {
-            // register an error handler which detects validation errors
-            result.setErrorHandler(new DefaultHandler()
-            {
-                @Override
-                public void error(final SAXParseException ex) throws SAXException
-                {
-                    throw ex;
-                }
-            });
-        }
-        return result;
+        return xMLConfigurationProduct.createDocumentBuilder();
     }
 
     /**
@@ -1018,7 +970,7 @@ public class XMLConfiguration extends BaseHierarchicalConfiguration implements
                 source.setSystemId(sourceURL.toString());
             }
 
-            final DocumentBuilder builder = createDocumentBuilder();
+            final DocumentBuilder builder = xMLConfigurationProduct.createDocumentBuilder();
             final Document newDocument = builder.parse(source);
             final Document oldDocument = getDocument();
             initProperties(XMLDocumentHelper.forSourceDocument(newDocument),
@@ -1066,7 +1018,7 @@ public class XMLConfiguration extends BaseHierarchicalConfiguration implements
             final Result result = new StreamResult(writer);
             XMLDocumentHelper.transform(transformer, source, result);
             final Reader reader = new StringReader(writer.getBuffer().toString());
-            final DocumentBuilder builder = createDocumentBuilder();
+            final DocumentBuilder builder = xMLConfigurationProduct.createDocumentBuilder();
             builder.parse(new InputSource(reader));
         }
         catch (final SAXException e)
@@ -1399,4 +1351,10 @@ public class XMLConfiguration extends BaseHierarchicalConfiguration implements
             return result;
         }
     }
+
+	public Object clone() {
+		XMLConfiguration clone = (XMLConfiguration) super.clone();
+		clone.xMLConfigurationProduct = (XMLConfigurationProduct) this.xMLConfigurationProduct.clone();
+		return clone;
+	}
 }
