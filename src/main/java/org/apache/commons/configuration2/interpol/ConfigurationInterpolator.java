@@ -87,7 +87,9 @@ import org.apache.commons.text.lookup.StringLookup;
  */
 public class ConfigurationInterpolator
 {
-    /** Constant for the prefix separator. */
+    private RegisteredLookupObjects registeredLookupObjects;
+
+	/** Constant for the prefix separator. */
     private static final char PREFIX_SEPARATOR = ':';
 
     /** The variable prefix. */
@@ -115,9 +117,6 @@ public class ConfigurationInterpolator
         DEFAULT_PREFIX_LOOKUPS = Collections.unmodifiableMap(lookups);
     }
 
-    /** A map with the currently registered lookup objects. */
-    private final Map<String, Lookup> prefixLookups;
-
     /** Stores the default lookup objects. */
     private final List<Lookup> defaultLookups;
 
@@ -132,26 +131,9 @@ public class ConfigurationInterpolator
      */
     public ConfigurationInterpolator()
     {
-        prefixLookups = new ConcurrentHashMap<>();
-        defaultLookups = new CopyOnWriteArrayList<>();
+        this.registeredLookupObjects = new RegisteredLookupObjects();
+		defaultLookups = new CopyOnWriteArrayList<>();
         substitutor = initSubstitutor();
-    }
-
-    /**
-     * Creates a new instance based on the properties in the given specification
-     * object.
-     *
-     * @param spec the {@code InterpolatorSpecification}
-     * @return the newly created instance
-     */
-    private static ConfigurationInterpolator createInterpolator(
-            final InterpolatorSpecification spec)
-    {
-        final ConfigurationInterpolator ci = new ConfigurationInterpolator();
-        ci.addDefaultLookups(spec.getDefaultLookups());
-        ci.registerLookups(spec.getPrefixLookups());
-        ci.setParentInterpolator(spec.getParentInterpolator());
-        return ci;
     }
 
     /**
@@ -190,7 +172,7 @@ public class ConfigurationInterpolator
                     "InterpolatorSpecification must not be null!");
         }
         return (spec.getInterpolator() != null) ? spec.getInterpolator()
-                : createInterpolator(spec);
+                : RegisteredLookupObjects.createInterpolator(spec);
     }
 
     /**
@@ -271,7 +253,7 @@ public class ConfigurationInterpolator
      */
     public boolean deregisterLookup(final String prefix)
     {
-        return prefixLookups.remove(prefix) != null;
+        return registeredLookupObjects.deregisterLookup(prefix);
     }
 
     /**
@@ -285,7 +267,7 @@ public class ConfigurationInterpolator
      */
     protected Lookup fetchLookupForPrefix(final String prefix)
     {
-        return nullSafeLookup(prefixLookups.get(prefix));
+        return nullSafeLookup(registeredLookupObjects.getPrefixLookups().get(prefix));
     }
 
     /**
@@ -312,7 +294,7 @@ public class ConfigurationInterpolator
      */
     public Map<String, Lookup> getLookups()
     {
-        return new HashMap<>(prefixLookups);
+        return registeredLookupObjects.getLookups();
     }
 
     /**
@@ -412,7 +394,7 @@ public class ConfigurationInterpolator
      */
     public Set<String> prefixSet()
     {
-        return Collections.unmodifiableSet(prefixLookups.keySet());
+        return registeredLookupObjects.prefixSet();
     }
 
     /**
@@ -428,17 +410,7 @@ public class ConfigurationInterpolator
      */
     public void registerLookup(final String prefix, final Lookup lookup)
     {
-        if (prefix == null)
-        {
-            throw new IllegalArgumentException(
-                    "Prefix for lookup object must not be null!");
-        }
-        if (lookup == null)
-        {
-            throw new IllegalArgumentException(
-                    "Lookup object must not be null!");
-        }
-        prefixLookups.put(prefix, lookup);
+        registeredLookupObjects.registerLookup(prefix, lookup);
     }
 
     /**
@@ -452,10 +424,7 @@ public class ConfigurationInterpolator
      */
     public void registerLookups(final Map<String, ? extends Lookup> lookups)
     {
-        if (lookups != null)
-        {
-            prefixLookups.putAll(lookups);
-        }
+        registeredLookupObjects.registerLookups(lookups);
     }
 
     /**
