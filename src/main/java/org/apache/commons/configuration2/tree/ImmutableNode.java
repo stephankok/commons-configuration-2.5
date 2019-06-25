@@ -370,7 +370,9 @@ public final class ImmutableNode
      */
     public static final class Builder
     {
-        /** The direct list of children of the new node. */
+        private ImmutableNodeAttribute immutableNodeAttribute = new ImmutableNodeAttribute();
+
+		/** The direct list of children of the new node. */
         private final List<ImmutableNode> directChildren;
 
         /** The direct map of attributes of the new node. */
@@ -381,12 +383,6 @@ public final class ImmutableNode
          * the {@code addChild()} method.
          */
         private List<ImmutableNode> children;
-
-        /**
-         * A map for storing the attributes of the new node. This map is
-         * populated by {@code addAttribute()}.
-         */
-        private Map<String, Object> attributes;
 
         /** The name of the node. */
         private String name;
@@ -523,8 +519,7 @@ public final class ImmutableNode
          */
         public Builder addAttribute(final String name, final Object value)
         {
-            ensureAttributesExist();
-            attributes.put(name, value);
+            immutableNodeAttribute.addAttribute(name, value);
             return this;
         }
 
@@ -538,11 +533,7 @@ public final class ImmutableNode
          */
         public Builder addAttributes(final Map<String, ?> attrs)
         {
-            if (attrs != null)
-            {
-                ensureAttributesExist();
-                attributes.putAll(attrs);
-            }
+            immutableNodeAttribute.addAttributes(attrs);
             return this;
         }
 
@@ -556,7 +547,8 @@ public final class ImmutableNode
         {
             final ImmutableNode newNode = new ImmutableNode(this);
             children = null;
-            attributes = null;
+            
+            immutableNodeAttribute.setAttributes(null);
             return newNode;
         }
 
@@ -594,9 +586,9 @@ public final class ImmutableNode
             {
                 return directAttributes;
             }
-            if (attributes != null)
+            if (immutableNodeAttribute.getAttributes() != null)
             {
-                return Collections.unmodifiableMap(attributes);
+                return Collections.unmodifiableMap(immutableNodeAttribute.getAttributes());
             }
             return Collections.emptyMap();
         }
@@ -610,18 +602,6 @@ public final class ImmutableNode
             if (children == null)
             {
                 children = new LinkedList<>();
-            }
-        }
-
-        /**
-         * Ensures that the map for the attributes exists. It is created on
-         * demand.
-         */
-        private void ensureAttributesExist()
-        {
-            if (attributes == null)
-            {
-                attributes = new HashMap<>();
             }
         }
 
