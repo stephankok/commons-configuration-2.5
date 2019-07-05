@@ -68,19 +68,12 @@ import org.apache.commons.configuration2.ex.ConfigurationException;
 public class BaseConfigurationBuilderProvider implements
         ConfigurationBuilderProvider
 {
-    /** The types of the constructor parameters for a basic builder. */
+    private BaseConfigurationBuilderProviderNames baseConfigurationBuilderProviderNames;
+
+	/** The types of the constructor parameters for a basic builder. */
     private static final Class<?>[] CTOR_PARAM_TYPES = {
             Class.class, Map.class, Boolean.TYPE
     };
-
-    /** The name of the builder class. */
-    private final String builderClass;
-
-    /** The name of a builder class with reloading support. */
-    private final String reloadingBuilderClass;
-
-    /** Stores the name of the configuration class to be created. */
-    private final String configurationClass;
 
     /** A collection with the names of parameter classes. */
     private final Collection<String> parameterClasses;
@@ -100,7 +93,7 @@ public class BaseConfigurationBuilderProvider implements
     public BaseConfigurationBuilderProvider(final String bldrCls,
             final String reloadBldrCls, final String configCls, final Collection<String> paramCls)
     {
-        if (bldrCls == null)
+		if (bldrCls == null)
         {
             throw new IllegalArgumentException(
                     "Builder class must not be null!");
@@ -110,10 +103,7 @@ public class BaseConfigurationBuilderProvider implements
             throw new IllegalArgumentException(
                     "Configuration class must not be null!");
         }
-
-        builderClass = bldrCls;
-        reloadingBuilderClass = reloadBldrCls;
-        configurationClass = configCls;
+        this.baseConfigurationBuilderProviderNames = new BaseConfigurationBuilderProviderNames(bldrCls, reloadBldrCls, configCls);        
         parameterClasses = initParameterClasses(paramCls);
     }
 
@@ -124,7 +114,7 @@ public class BaseConfigurationBuilderProvider implements
      */
     public String getBuilderClass()
     {
-        return builderClass;
+        return baseConfigurationBuilderProviderNames.getBuilderClass();
     }
 
     /**
@@ -136,7 +126,7 @@ public class BaseConfigurationBuilderProvider implements
      */
     public String getReloadingBuilderClass()
     {
-        return reloadingBuilderClass;
+        return baseConfigurationBuilderProviderNames.getReloadingBuilderClass();
     }
 
     /**
@@ -147,7 +137,7 @@ public class BaseConfigurationBuilderProvider implements
      */
     public String getConfigurationClass()
     {
-        return configurationClass;
+        return baseConfigurationBuilderProviderNames.getConfigurationClass();
     }
 
     /**
@@ -284,7 +274,7 @@ public class BaseConfigurationBuilderProvider implements
             throws Exception
     {
         final Class<?> bldCls =
-                ConfigurationUtils.loadClass(determineBuilderClass(decl));
+                ConfigurationUtils.loadClass(baseConfigurationBuilderProviderNames.determineBuilderClass(decl));
         final Class<?> configCls =
                 ConfigurationUtils.loadClass(determineConfigurationClass(decl,
                         params));
@@ -331,17 +321,7 @@ public class BaseConfigurationBuilderProvider implements
     protected String determineBuilderClass(final ConfigurationDeclaration decl)
             throws ConfigurationException
     {
-        if (decl.isReload())
-        {
-            if (getReloadingBuilderClass() == null)
-            {
-                throw new ConfigurationException(
-                        "No support for reloading for builder class "
-                                + getBuilderClass());
-            }
-            return getReloadingBuilderClass();
-        }
-        return getBuilderClass();
+        return baseConfigurationBuilderProviderNames.determineBuilderClass(decl);
     }
 
     /**
@@ -359,7 +339,7 @@ public class BaseConfigurationBuilderProvider implements
     protected String determineConfigurationClass(final ConfigurationDeclaration decl,
             final Collection<BuilderParameters> params) throws ConfigurationException
     {
-        return getConfigurationClass();
+        return baseConfigurationBuilderProviderNames.getConfigurationClass();
     }
 
     /**

@@ -1,11 +1,10 @@
 package org.apache.commons.configuration2;
 
 
-import org.apache.commons.text.StringEscapeUtils;
 import org.apache.commons.configuration2.PropertiesConfiguration.PropertiesReader;
 
 public class PropertiesReaderings {
-	private String propertyName;
+	private PropertiesReaderingsName propertiesReaderingsName = new PropertiesReaderingsName();
 	private String propertyValue;
     /** Stores the property separator of the last read property.*/
     /** Constant for the default properties separator.*/
@@ -14,7 +13,7 @@ public class PropertiesReaderings {
     
     
 	public String getPropertyName() {
-		return propertyName;
+		return propertiesReaderingsName.getPropertyName();
 	}
 
 	public String getPropertyValue() {
@@ -27,7 +26,7 @@ public class PropertiesReaderings {
 	* @since  1.7
 	*/
 	public void initPropertyName(final String name) {
-		propertyName = unescapePropertyName(name);
+		propertiesReaderingsName.initPropertyName(name);
 	}
 
 	/**
@@ -37,7 +36,7 @@ public class PropertiesReaderings {
 	* @since  2.4
 	*/
 	public String unescapePropertyName(final String name) {
-		return StringEscapeUtils.unescapeJava(name);
+		return propertiesReaderingsName.unescapePropertyName(name);
 	}
 
 	/**

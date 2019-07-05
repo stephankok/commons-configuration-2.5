@@ -97,17 +97,8 @@ class ModelTransaction
     /** A new parent mapping. */
     private final Map<ImmutableNode, ImmutableNode> parentMapping;
 
-    /** A collection with nodes which have been added. */
-    private final Collection<ImmutableNode> addedNodes;
-
-    /** A collection with nodes which have been removed. */
-    private final Collection<ImmutableNode> removedNodes;
-
-    /**
-     * Stores all nodes which have been removed in this transaction (not only
-     * the root nodes of removed trees).
-     */
-    private final Collection<ImmutableNode> allRemovedNodes;
+    /** Logging added and removed nodes. */
+    private TranscationLog transactionLog;
 
     /**
      * Stores the operations to be executed during this transaction. The map is
@@ -115,7 +106,7 @@ class ModelTransaction
      * down in the hierarchy are executed first because they affect the nodes
      * closer to the root.
      */
-    private final SortedMap<Integer, Map<ImmutableNode, Operations>> operations;
+    private final OperationsList operations;      
 
     /** A map with reference objects to be added during this transaction. */
     private Map<ImmutableNode, Object> newReferences;
@@ -141,10 +132,8 @@ class ModelTransaction
         replacementMapping = getCurrentData().copyReplacementMapping();
         replacedNodes = new HashMap<>();
         parentMapping = getCurrentData().copyParentMapping();
-        operations = new TreeMap<>();
-        addedNodes = new LinkedList<>();
-        removedNodes = new LinkedList<>();
-        allRemovedNodes = new LinkedList<>();
+        operations = new OperationsList();
+        transactionLog = new TranscationLog();
         queryRoot = initQueryRoot(treeData, selector);
         rootNodeSelector = selector;
     }
@@ -318,7 +307,7 @@ class ModelTransaction
      */
     public TreeData execute()
     {
-        executeOperations();
+        operations.executeOperations();
         updateParentMapping();
         return new TreeData(newRoot, parentMapping, replacementMapping,
                 currentData.getNodeTracker().update(newRoot, rootNodeSelector,
@@ -357,23 +346,7 @@ class ModelTransaction
      */
     Operations fetchOperations(final ImmutableNode target, final int level)
     {
-        final Integer nodeLevel =
-                Integer.valueOf((level == LEVEL_UNKNOWN) ? level(target)
-                        : level);
-        Map<ImmutableNode, Operations> levelOperations =
-                operations.get(nodeLevel);
-        if (levelOperations == null)
-        {
-            levelOperations = new HashMap<>();
-            operations.put(nodeLevel, levelOperations);
-        }
-        Operations ops = levelOperations.get(target);
-        if (ops == null)
-        {
-            ops = new Operations();
-            levelOperations.put(target, ops);
-        }
-        return ops;
+        return operations.fetchOperations(target, level);
     }
 
     /**
@@ -409,22 +382,6 @@ class ModelTransaction
             current = getCurrentData().getParent(current);
         }
         return level;
-    }
-
-    /**
-     * Executes all operations in this transaction.
-     */
-    private void executeOperations()
-    {
-        while (!operations.isEmpty())
-        {
-            final Integer level = operations.lastKey(); // start down in hierarchy
-            final Map<ImmutableNode, Operations> levelOps = operations.remove(level);
-            for (final Map.Entry<ImmutableNode, Operations> e : levelOps.entrySet())
-            {
-                e.getValue().apply(e.getKey(), level);
-            }
-        }
     }
 
     /**
@@ -464,7 +421,7 @@ class ModelTransaction
      */
     private void updateParentMappingForAddedNodes()
     {
-        for (final ImmutableNode node : addedNodes)
+        for (final ImmutableNode node : transactionLog.getAddedNodes())
         {
             InMemoryNodeModel.updateParentMapping(parentMapping, node);
         }
@@ -476,7 +433,7 @@ class ModelTransaction
      */
     private void updateParentMappingForRemovedNodes()
     {
-        for (final ImmutableNode node : removedNodes)
+        for (final ImmutableNode node : transactionLog.getRemovedNodes())
         {
             removeNodesFromParentAndReplacementMapping(node);
         }
@@ -497,7 +454,7 @@ class ModelTransaction
                     public void visitBeforeChildren(final ImmutableNode node,
                             final NodeHandler<ImmutableNode> handler)
                     {
-                        allRemovedNodes.add(node);
+                    	transactionLog.remove(node);
                         parentMapping.remove(node);
                         removeNodeFromReplacementMapping(node);
                     }
@@ -532,7 +489,7 @@ class ModelTransaction
         {
             tracker = tracker.addReferences(newReferences);
         }
-        return tracker.updateReferences(replacedNodes, allRemovedNodes);
+        return tracker.updateReferences(replacedNodes, transactionLog.getAllRemovedNodes());
     }
 
     /**
@@ -788,7 +745,7 @@ class ModelTransaction
                 {
                     if (removals.contains(nd))
                     {
-                        removedNodes.add(nd);
+                    	transactionLog.removeLocal(nd);
                     }
                     else
                     {
@@ -1102,9 +1059,103 @@ class ModelTransaction
                 for (final ImmutableNode child : addedNodesInOperation)
                 {
                     parentMapping.put(child, node);
-                    addedNodes.add(child);
+                    transactionLog.add(child);
                 }
             }
+        }
+    }
+    
+    /**
+     * Stores the operations to be executed during this transaction. The map is
+     * sorted by the levels of the nodes to be manipulated: Operations on nodes
+     * down in the hierarchy are executed first because they affect the nodes
+     * closer to the root.
+     */
+    private class OperationsList {
+    	SortedMap<Integer, Map<ImmutableNode, Operations>> operations;
+    	
+    	private OperationsList() {
+    		operations = new TreeMap<>();
+    	}
+    	
+    	private Operations fetchOperations(final ImmutableNode target, final int level)
+        {
+            final Integer nodeLevel =
+                    Integer.valueOf((level == LEVEL_UNKNOWN) ? level(target)
+                            : level);
+            Map<ImmutableNode, Operations> levelOperations =
+                    operations.get(nodeLevel);
+            if (levelOperations == null)
+            {
+                levelOperations = new HashMap<>();
+                operations.put(nodeLevel, levelOperations);
+            }
+            Operations ops = levelOperations.get(target);
+            if (ops == null)
+            {
+                ops = new Operations();
+                levelOperations.put(target, ops);
+            }
+            return ops;
+        }
+    	
+    	/**
+         * Executes all operations in this transaction.
+         */
+        private void executeOperations()
+        {
+            while (!operations.isEmpty())
+            {
+                final Integer level = operations.lastKey(); // start down in hierarchy
+                final Map<ImmutableNode, Operations> levelOps = operations.remove(level);
+                for (final Map.Entry<ImmutableNode, Operations> e : levelOps.entrySet())
+                {
+                    e.getValue().apply(e.getKey(), level);
+                }
+            }
+        }       
+    }
+    
+    private class TranscationLog{
+    	/** A collection with nodes which have been added. */
+        private final Collection<ImmutableNode> addedNodes;
+
+        /** A collection with nodes which have been removed. */
+        private final Collection<ImmutableNode> removedNodes;
+        /**
+         * Stores all nodes which have been removed in this transaction (not only
+         * the root nodes of removed trees).
+         */
+        private final Collection<ImmutableNode> allRemovedNodes;
+        
+        private TranscationLog() {
+            addedNodes = new LinkedList<>();
+            removedNodes = new LinkedList<>();
+            allRemovedNodes = new LinkedList<>();        	
+        }
+        
+        private Collection<ImmutableNode> getAddedNodes() {
+        	return addedNodes;
+        }
+        
+        private Collection<ImmutableNode> getRemovedNodes() {
+        	return removedNodes;
+        }
+        
+        private Collection<ImmutableNode> getAllRemovedNodes() {
+        	return allRemovedNodes;
+        }
+        
+        private void remove(ImmutableNode node) {
+        	allRemovedNodes.add(node);
+        }
+        
+        private void removeLocal(ImmutableNode node) {
+        	removedNodes.add(node);
+        }
+        
+        private void add(ImmutableNode node) {
+        	addedNodes.add(node);
         }
     }
 }

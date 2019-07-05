@@ -258,9 +258,6 @@ public class PropertiesConfiguration extends BaseConfiguration
 
     /** The white space characters used as key/value separators. */
     private static final char[] WHITE_SPACE = new char[]{' ', '\t', '\f'};
-
-    /** Constant for the platform specific line separator.*/
-    private static final String LINE_SEPARATOR = System.getProperty("line.separator");
     
     static final String DEFAULT_SEPARATOR = " = ";
 
@@ -987,7 +984,9 @@ public class PropertiesConfiguration extends BaseConfiguration
     public static class PropertiesWriter extends FilterWriter
     {
 
-        /**
+        private PropertiesWriterSeperator propertiesWriterSeperator = new PropertiesWriterSeperator();
+
+		/**
          * Properties escape map.
          */
         private static final Map<CharSequence, CharSequence> PROPERTIES_CHARS_ESCAPE;
@@ -1030,15 +1029,6 @@ public class PropertiesConfiguration extends BaseConfiguration
 
         /** The list delimiter handler.*/
         private final ListDelimiterHandler delimiterHandler;
-
-        /** The separator to be used for the current property. */
-        private String currentSeparator;
-
-        /** The global separator. If set, it overrides the current separator.*/
-        private String globalSeparator;
-
-        /** The line separator.*/
-        private String lineSeparator;
 
         /**
          * Creates a new instance of {@code PropertiesWriter}.
@@ -1089,7 +1079,7 @@ public class PropertiesConfiguration extends BaseConfiguration
          */
         public String getCurrentSeparator()
         {
-            return currentSeparator;
+            return propertiesWriterSeperator.getCurrentSeparator();
         }
 
         /**
@@ -1101,7 +1091,7 @@ public class PropertiesConfiguration extends BaseConfiguration
          */
         public void setCurrentSeparator(final String currentSeparator)
         {
-            this.currentSeparator = currentSeparator;
+            propertiesWriterSeperator.setCurrentSeparator(currentSeparator);
         }
 
         /**
@@ -1112,7 +1102,7 @@ public class PropertiesConfiguration extends BaseConfiguration
          */
         public String getGlobalSeparator()
         {
-            return globalSeparator;
+            return propertiesWriterSeperator.getGlobalSeparator();
         }
 
         /**
@@ -1127,7 +1117,7 @@ public class PropertiesConfiguration extends BaseConfiguration
          */
         public void setGlobalSeparator(final String globalSeparator)
         {
-            this.globalSeparator = globalSeparator;
+            propertiesWriterSeperator.setGlobalSeparator(globalSeparator);
         }
 
         /**
@@ -1138,7 +1128,7 @@ public class PropertiesConfiguration extends BaseConfiguration
          */
         public String getLineSeparator()
         {
-            return (lineSeparator != null) ? lineSeparator : LINE_SEPARATOR;
+            return propertiesWriterSeperator.getLineSeparator();
         }
 
         /**
@@ -1151,7 +1141,7 @@ public class PropertiesConfiguration extends BaseConfiguration
          */
         public void setLineSeparator(final String lineSeparator)
         {
-            this.lineSeparator = lineSeparator;
+            propertiesWriterSeperator.setLineSeparator(lineSeparator);
         }
 
         /**
@@ -1229,10 +1219,10 @@ public class PropertiesConfiguration extends BaseConfiguration
             }
 
             write(escapeKey(key));
-            write(fetchSeparator(key, value));
+            write(propertiesWriterSeperator.fetchSeparator(key, value));
             write(v);
 
-            writeln(null);
+            propertiesWriterSeperator.writeln(null, this);
         }
 
         /**
@@ -1243,7 +1233,7 @@ public class PropertiesConfiguration extends BaseConfiguration
          */
         public void writeComment(final String comment) throws IOException
         {
-            writeln("# " + comment);
+            propertiesWriterSeperator.writeln("# " + comment, this);
         }
 
         /**
@@ -1289,11 +1279,7 @@ public class PropertiesConfiguration extends BaseConfiguration
          */
         public void writeln(final String s) throws IOException
         {
-            if (s != null)
-            {
-                write(s);
-            }
-            write(getLineSeparator());
+            propertiesWriterSeperator.writeln(s, this);
         }
 
         /**
@@ -1313,8 +1299,7 @@ public class PropertiesConfiguration extends BaseConfiguration
          */
         protected String fetchSeparator(final String key, final Object value)
         {
-            return (getGlobalSeparator() != null) ? getGlobalSeparator()
-                    : StringUtils.defaultString(getCurrentSeparator());
+            return propertiesWriterSeperator.fetchSeparator(key, value);
         }
     } // class PropertiesWriter
 

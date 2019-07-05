@@ -33,14 +33,10 @@ import org.apache.commons.configuration2.convert.ListDelimiterHandler;
  */
 public class SubsetConfiguration extends AbstractConfiguration
 {
-    /** The parent configuration. */
+    private SubsetConfigurationKeyFormat subsetConfigurationKeyFormat = new SubsetConfigurationKeyFormat();
+
+	/** The parent configuration. */
     protected Configuration parent;
-
-    /** The prefix used to select the properties. */
-    protected String prefix;
-
-    /** The prefix delimiter */
-    protected String delimiter;
 
     /**
      * Create a subset of the specified configuration
@@ -71,8 +67,8 @@ public class SubsetConfiguration extends AbstractConfiguration
         }
 
         this.parent = parent;
-        this.prefix = prefix;
-        this.delimiter = delimiter;
+        subsetConfigurationKeyFormat.setPrefix(prefix);
+        subsetConfigurationKeyFormat.setDelimiter(delimiter);
         initInterpolator();
     }
 
@@ -85,11 +81,7 @@ public class SubsetConfiguration extends AbstractConfiguration
      */
     protected String getParentKey(final String key)
     {
-        if ("".equals(key) || key == null)
-        {
-            return prefix;
-        }
-        return delimiter == null ? prefix + key : prefix + delimiter + key;
+        return subsetConfigurationKeyFormat.getParentKey(key);
     }
 
     /**
@@ -101,22 +93,7 @@ public class SubsetConfiguration extends AbstractConfiguration
      */
     protected String getChildKey(final String key)
     {
-        if (!key.startsWith(prefix))
-        {
-            throw new IllegalArgumentException("The parent key '" + key + "' is not in the subset.");
-        }
-        String modifiedKey = null;
-        if (key.length() == prefix.length())
-        {
-            modifiedKey = "";
-        }
-        else
-        {
-            final int i = prefix.length() + (delimiter != null ? delimiter.length() : 0);
-            modifiedKey = key.substring(i);
-        }
-
-        return modifiedKey;
+        return subsetConfigurationKeyFormat.getChildKey(key);
     }
 
     /**
@@ -136,7 +113,7 @@ public class SubsetConfiguration extends AbstractConfiguration
      */
     public String getPrefix()
     {
-        return prefix;
+        return subsetConfigurationKeyFormat.getPrefix();
     }
 
     /**
@@ -146,13 +123,13 @@ public class SubsetConfiguration extends AbstractConfiguration
      */
     public void setPrefix(final String prefix)
     {
-        this.prefix = prefix;
+        subsetConfigurationKeyFormat.setPrefix(prefix);
     }
 
     @Override
     public Configuration subset(final String prefix)
     {
-        return parent.subset(getParentKey(prefix));
+        return parent.subset(subsetConfigurationKeyFormat.getParentKey(prefix));
     }
 
     @Override
@@ -164,37 +141,37 @@ public class SubsetConfiguration extends AbstractConfiguration
     @Override
     protected boolean containsKeyInternal(final String key)
     {
-        return parent.containsKey(getParentKey(key));
+        return parent.containsKey(subsetConfigurationKeyFormat.getParentKey(key));
     }
 
     @Override
     public void addPropertyDirect(final String key, final Object value)
     {
-        parent.addProperty(getParentKey(key), value);
+        parent.addProperty(subsetConfigurationKeyFormat.getParentKey(key), value);
     }
 
     @Override
     protected void clearPropertyDirect(final String key)
     {
-        parent.clearProperty(getParentKey(key));
+        parent.clearProperty(subsetConfigurationKeyFormat.getParentKey(key));
     }
 
     @Override
     protected Object getPropertyInternal(final String key)
     {
-        return parent.getProperty(getParentKey(key));
+        return parent.getProperty(subsetConfigurationKeyFormat.getParentKey(key));
     }
 
     @Override
     protected Iterator<String> getKeysInternal(final String prefix)
     {
-        return new SubsetIterator(parent.getKeys(getParentKey(prefix)));
+        return new SubsetIterator(parent.getKeys(subsetConfigurationKeyFormat.getParentKey(prefix)));
     }
 
     @Override
     protected Iterator<String> getKeysInternal()
     {
-        return new SubsetIterator(parent.getKeys(prefix));
+        return new SubsetIterator(parent.getKeys(subsetConfigurationKeyFormat.getPrefix()));
     }
 
     /**
@@ -316,7 +293,7 @@ public class SubsetConfiguration extends AbstractConfiguration
         @Override
         public String next()
         {
-            return getChildKey(parentIterator.next());
+            return subsetConfigurationKeyFormat.getChildKey(parentIterator.next());
         }
 
         /**
@@ -329,4 +306,10 @@ public class SubsetConfiguration extends AbstractConfiguration
             parentIterator.remove();
         }
     }
+
+	public Object clone() throws java.lang.CloneNotSupportedException {
+		SubsetConfiguration clone = (SubsetConfiguration) super.clone();
+		clone.subsetConfigurationKeyFormat = (SubsetConfigurationKeyFormat) this.subsetConfigurationKeyFormat.clone();
+		return clone;
+	}
 }

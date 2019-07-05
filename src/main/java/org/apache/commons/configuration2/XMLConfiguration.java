@@ -1045,11 +1045,10 @@ public class XMLConfiguration extends BaseHierarchicalConfiguration implements
      */
     static class XMLBuilderVisitor extends BuilderVisitor
     {
-        /** Stores the document to be constructed. */
-        private final Document document;
+        private XMLBuilderVisitorNodeMap xMLBuilderVisitorNodeMap;
 
-        /** The element mapping. */
-        private final Map<Node, Node> elementMapping;
+		/** Stores the document to be constructed. */
+        private final Document document;
 
         /** A mapping for the references for new nodes. */
         private final Map<ImmutableNode, Element> newElements;
@@ -1067,8 +1066,8 @@ public class XMLConfiguration extends BaseHierarchicalConfiguration implements
         public XMLBuilderVisitor(final XMLDocumentHelper docHelper,
                 final ListDelimiterHandler handler)
         {
-            document = docHelper.getDocument();
-            elementMapping = docHelper.getElementMapping();
+            this.xMLBuilderVisitorNodeMap = new XMLBuilderVisitorNodeMap(docHelper);
+			document = docHelper.getDocument();
             listDelimiterHandler = handler;
             newElements = new HashMap<>();
         }
@@ -1094,14 +1093,7 @@ public class XMLConfiguration extends BaseHierarchicalConfiguration implements
          */
         public void handleRemovedNodes(final ReferenceNodeHandler refHandler)
         {
-            for (final Object ref : refHandler.removedReferences())
-            {
-                if (ref instanceof Node)
-                {
-                    final Node removedElem = (Node) ref;
-                    removeReference((Element) elementMapping.get(removedElem));
-                }
-            }
+            xMLBuilderVisitorNodeMap.handleRemovedNodes(refHandler);
         }
 
         /**
@@ -1218,19 +1210,6 @@ public class XMLConfiguration extends BaseHierarchicalConfiguration implements
         }
 
         /**
-         * Updates the associated XML elements when a node is removed.
-         * @param element the element to be removed
-         */
-        private void removeReference(final Element element)
-        {
-            final org.w3c.dom.Node parentElem = element.getParentNode();
-            if (parentElem != null)
-            {
-                parentElem.removeChild(element);
-            }
-        }
-
-        /**
          * Helper method for accessing the element of the specified node.
          *
          * @param node the node
@@ -1263,7 +1242,7 @@ public class XMLConfiguration extends BaseHierarchicalConfiguration implements
             {
                 element = (Node) reference;
             }
-            return (element != null) ? (Element) elementMapping.get(element)
+            return (element != null) ? (Element) xMLBuilderVisitorNodeMap.getElementMapping().get(element)
                     : document.getDocumentElement();
         }
 

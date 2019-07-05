@@ -39,12 +39,11 @@ public class ImmutatbleNodeChildren {
 	* @param c  the child node (must not be <b>null</b>)
 	* @return  a reference to this object for method chaining
 	*/
-	public Builder addChild(final ImmutableNode c, Builder builder) {
+	public void addChild(final ImmutableNode c) {
 		if (c != null) {
 			ensureChildrenExist();
 			children.add(c);
-		}
-		return builder;
+		}		
 	}
 
 	/**
@@ -61,12 +60,11 @@ public class ImmutatbleNodeChildren {
 	* @param children  a collection with the child nodes to be added
 	* @return  a reference to this object for method chaining
 	*/
-	public Builder addChildren(final Collection<? extends ImmutableNode> children, Builder builder) {
+	public void addChildren(final Collection<? extends ImmutableNode> children) {
 		if (children != null) {
 			ensureChildrenExist();
 			this.children.addAll(Builder.filterNull(children));
-		}
-		return builder;
+		}		
 	}
 
 	/**

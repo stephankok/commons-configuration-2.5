@@ -65,14 +65,10 @@ import java.util.List;
  */
 public class BaseEventSource implements EventSource
 {
-    /** The list for managing registered event listeners. */
+    private BaseEventSourceData baseEventSourceData = new BaseEventSourceData();
+
+	/** The list for managing registered event listeners. */
     private EventListenerList eventListeners;
-
-    /** A lock object for guarding access to the detail events counter. */
-    private final Object lockDetailEventsCount = new Object();
-
-    /** A counter for the detail events. */
-    private int detailEvents;
 
     /**
      * Creates a new instance of {@code BaseEventSource}.
@@ -124,7 +120,7 @@ public class BaseEventSource implements EventSource
      */
     public boolean isDetailEvents()
     {
-        return checkDetailEvents(0);
+        return baseEventSourceData.checkDetailEvents(0);
     }
 
     /**
@@ -138,17 +134,7 @@ public class BaseEventSource implements EventSource
      */
     public void setDetailEvents(final boolean enable)
     {
-        synchronized (lockDetailEventsCount)
-        {
-            if (enable)
-            {
-                detailEvents++;
-            }
-            else
-            {
-                detailEvents--;
-            }
-        }
+        baseEventSourceData.setDetailEvents(enable);
     }
 
     @Override
@@ -221,7 +207,7 @@ public class BaseEventSource implements EventSource
     protected <T extends ConfigurationEvent> void fireEvent(final EventType<T> type,
             final String propName, final Object propValue, final boolean before)
     {
-        if (checkDetailEvents(-1))
+        if (baseEventSourceData.checkDetailEvents(-1))
         {
             final EventListenerList.EventListenerIterator<T> it =
                     eventListeners.getEventListenerIterator(type);
@@ -320,6 +306,7 @@ public class BaseEventSource implements EventSource
     protected Object clone() throws CloneNotSupportedException
     {
         final BaseEventSource copy = (BaseEventSource) super.clone();
+		copy.baseEventSourceData = (BaseEventSourceData) this.baseEventSourceData.clone();
         copy.initListeners();
         return copy;
     }
@@ -330,21 +317,5 @@ public class BaseEventSource implements EventSource
     private void initListeners()
     {
         eventListeners = new EventListenerList();
-    }
-
-    /**
-     * Helper method for checking the current counter for detail events. This
-     * method checks whether the counter is greater than the passed in limit.
-     *
-     * @param limit the limit to be compared to
-     * @return <b>true</b> if the counter is greater than the limit,
-     *         <b>false</b> otherwise
-     */
-    private boolean checkDetailEvents(final int limit)
-    {
-        synchronized (lockDetailEventsCount)
-        {
-            return detailEvents > limit;
-        }
     }
 }

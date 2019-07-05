@@ -474,7 +474,8 @@ public final class ImmutableNode
          */
         public Builder addChild(final ImmutableNode c)
         {
-            return immutatbleNodeChildren.addChild(c, this);
+            immutatbleNodeChildren.addChild(c);
+            return this;
         }
 
         /**
@@ -488,7 +489,8 @@ public final class ImmutableNode
          */
         public Builder addChildren(final Collection<? extends ImmutableNode> children)
         {
-            return immutatbleNodeChildren.addChildren(children, this);
+            immutatbleNodeChildren.addChildren(children);
+            return this;
         }
 
         /**
