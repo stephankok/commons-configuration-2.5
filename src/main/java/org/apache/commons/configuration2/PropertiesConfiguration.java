@@ -221,8 +221,7 @@ public class PropertiesConfiguration extends BaseConfiguration
     /** Constant for the supported comment characters.*/
     static final String COMMENT_CHARS = "#!";
 
-    /** Constant for the default properties separator.*/
-    static final String DEFAULT_SEPARATOR = " = ";
+
 
     /**
      * Constant for the default {@code IOFactory}. This instance is used
@@ -260,6 +259,8 @@ public class PropertiesConfiguration extends BaseConfiguration
 
     /** Constant for the platform specific line separator.*/
     private static final String LINE_SEPARATOR = System.getProperty("line.separator");
+    
+    static final String DEFAULT_SEPARATOR = " = ";
 
     /** Constant for the radix of hex numbers.*/
     private static final int HEX_RADIX = 16;
@@ -696,7 +697,9 @@ public class PropertiesConfiguration extends BaseConfiguration
      */
     public static class PropertiesReader extends LineNumberReader
     {
-        /** The regular expression to parse the key and the value of a property. */
+        private PropertiesReaderings propertiesReaderings = new PropertiesReaderings();
+
+		/** The regular expression to parse the key and the value of a property. */
         private static final Pattern PROPERTY_PATTERN = Pattern
                 .compile("(([\\S&&[^\\\\" + new String(SEPARATORS)
                         + "]]|\\\\.)*)(\\s*(\\s+|[" + new String(SEPARATORS)
@@ -713,15 +716,6 @@ public class PropertiesConfiguration extends BaseConfiguration
 
         /** Stores the comment lines for the currently processed property.*/
         private final List<String> commentLines;
-
-        /** Stores the name of the last read property.*/
-        private String propertyName;
-
-        /** Stores the value of the last read property.*/
-        private String propertyValue;
-
-        /** Stores the property separator of the last read property.*/
-        private String propertySeparator = DEFAULT_SEPARATOR;
 
         /**
          * Constructor.
@@ -828,7 +822,7 @@ public class PropertiesConfiguration extends BaseConfiguration
          */
         public String getPropertyName()
         {
-            return propertyName;
+            return propertiesReaderings.getPropertyName();
         }
 
         /**
@@ -841,7 +835,7 @@ public class PropertiesConfiguration extends BaseConfiguration
          */
         public String getPropertyValue()
         {
-            return propertyValue;
+            return propertiesReaderings.getPropertyValue();
         }
 
         /**
@@ -854,7 +848,7 @@ public class PropertiesConfiguration extends BaseConfiguration
          */
         public String getPropertySeparator()
         {
-            return propertySeparator;
+            return propertiesReaderings.getPropertySeparator();
         }
 
         /**
@@ -870,8 +864,8 @@ public class PropertiesConfiguration extends BaseConfiguration
         protected void parseProperty(final String line)
         {
             final String[] property = doParseProperty(line, true);
-            initPropertyName(property[0]);
-            initPropertyValue(property[1]);
+            propertiesReaderings.initPropertyName(property[0]);
+            propertiesReaderings.initPropertyValue(property[1], this);
             initPropertySeparator(property[2]);
         }
 
@@ -886,7 +880,7 @@ public class PropertiesConfiguration extends BaseConfiguration
          */
         protected void initPropertyName(final String name)
         {
-            propertyName = unescapePropertyName(name);
+            propertiesReaderings.initPropertyName(name);
         }
 
         /**
@@ -898,7 +892,7 @@ public class PropertiesConfiguration extends BaseConfiguration
          */
         protected String unescapePropertyName(final String name)
         {
-            return StringEscapeUtils.unescapeJava(name);
+            return propertiesReaderings.unescapePropertyName(name);
         }
 
         /**
@@ -912,7 +906,7 @@ public class PropertiesConfiguration extends BaseConfiguration
          */
         protected void initPropertyValue(final String value)
         {
-            propertyValue = unescapePropertyValue(value);
+            propertiesReaderings.initPropertyValue(value, this);
         }
 
         /**
@@ -938,7 +932,7 @@ public class PropertiesConfiguration extends BaseConfiguration
          */
         protected void initPropertySeparator(final String value)
         {
-            propertySeparator = value;
+        	propertiesReaderings.setPropertySeparator(value);
         }
 
         /**

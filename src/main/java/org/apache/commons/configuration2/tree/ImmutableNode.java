@@ -370,19 +370,12 @@ public final class ImmutableNode
      */
     public static final class Builder
     {
-        private ImmutableNodeAttribute immutableNodeAttribute = new ImmutableNodeAttribute();
+        private ImmutatbleNodeChildren immutatbleNodeChildren;
 
-		/** The direct list of children of the new node. */
-        private final List<ImmutableNode> directChildren;
+		private ImmutableNodeAttribute immutableNodeAttribute = new ImmutableNodeAttribute();
 
-        /** The direct map of attributes of the new node. */
+		/** The direct map of attributes of the new node. */
         private final Map<String, Object> directAttributes;
-
-        /**
-         * A list for the children of the new node. This list is populated by
-         * the {@code addChild()} method.
-         */
-        private List<ImmutableNode> children;
 
         /** The name of the node. */
         private String name;
@@ -409,7 +402,7 @@ public final class ImmutableNode
         public Builder(final int childCount)
         {
             this();
-            initChildrenCollection(childCount);
+            immutatbleNodeChildren.initChildrenCollection(childCount);
         }
 
         /**
@@ -427,8 +420,8 @@ public final class ImmutableNode
         private Builder(final List<ImmutableNode> dirChildren,
                 final Map<String, Object> dirAttrs)
         {
-            directChildren = dirChildren;
-            directAttributes = dirAttrs;
+            this.immutatbleNodeChildren = new ImmutatbleNodeChildren(dirChildren);
+			directAttributes = dirAttrs;
         }
 
         /**
@@ -445,7 +438,7 @@ public final class ImmutableNode
         private Builder(final int childCount, final Map<String, Object> dirAttrs)
         {
             this(null, dirAttrs);
-            initChildrenCollection(childCount);
+            immutatbleNodeChildren.initChildrenCollection(childCount);
         }
 
         /**
@@ -481,12 +474,7 @@ public final class ImmutableNode
          */
         public Builder addChild(final ImmutableNode c)
         {
-            if (c != null)
-            {
-                ensureChildrenExist();
-                children.add(c);
-            }
-            return this;
+            return immutatbleNodeChildren.addChild(c, this);
         }
 
         /**
@@ -500,12 +488,7 @@ public final class ImmutableNode
          */
         public Builder addChildren(final Collection<? extends ImmutableNode> children)
         {
-            if (children != null)
-            {
-                ensureChildrenExist();
-                this.children.addAll(filterNull(children));
-            }
-            return this;
+            return immutatbleNodeChildren.addChildren(children, this);
         }
 
         /**
@@ -546,7 +529,7 @@ public final class ImmutableNode
         public ImmutableNode create()
         {
             final ImmutableNode newNode = new ImmutableNode(this);
-            children = null;
+            immutatbleNodeChildren.setChildren(null);
             
             immutableNodeAttribute.setAttributes(null);
             return newNode;
@@ -561,15 +544,7 @@ public final class ImmutableNode
          */
         List<ImmutableNode> createChildren()
         {
-            if (directChildren != null)
-            {
-                return directChildren;
-            }
-            if (children != null)
-            {
-                return Collections.unmodifiableList(children);
-            }
-            return Collections.emptyList();
+            return immutatbleNodeChildren.createChildren();
         }
 
         /**
@@ -594,39 +569,13 @@ public final class ImmutableNode
         }
 
         /**
-         * Ensures that the collection for the child nodes exists. It is created
-         * on demand.
-         */
-        private void ensureChildrenExist()
-        {
-            if (children == null)
-            {
-                children = new LinkedList<>();
-            }
-        }
-
-        /**
-         * Creates the collection for child nodes based on the expected number
-         * of children.
-         *
-         * @param childCount the expected number of new children
-         */
-        private void initChildrenCollection(final int childCount)
-        {
-            if (childCount > 0)
-            {
-                children = new ArrayList<>(childCount);
-            }
-        }
-
-        /**
          * Filters null entries from the passed in collection with child nodes.
          *
          *
          * @param children the collection to be filtered
          * @return the collection with null entries removed
          */
-        private static Collection<? extends ImmutableNode> filterNull(
+        public static Collection<? extends ImmutableNode> filterNull(
                 final Collection<? extends ImmutableNode> children)
         {
             final List<ImmutableNode> result =

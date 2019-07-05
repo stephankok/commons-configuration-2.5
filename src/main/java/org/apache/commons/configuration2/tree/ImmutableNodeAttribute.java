@@ -2,7 +2,6 @@ package org.apache.commons.configuration2.tree;
 
 
 import java.util.Map;
-import org.apache.commons.configuration2.tree.ImmutableNode.Builder;
 import java.util.HashMap;
 
 public class ImmutableNodeAttribute {
