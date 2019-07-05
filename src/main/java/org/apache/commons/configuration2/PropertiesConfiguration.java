@@ -212,7 +212,9 @@ import org.apache.commons.text.translate.UnicodeEscaper;
 public class PropertiesConfiguration extends BaseConfiguration
     implements FileBasedConfiguration, FileLocatorAware
 {
-    /**
+    private PropertiesFileLocator configurationFileLocator = new PropertiesFileLocator();
+
+	/**
      * The default encoding (ISO-8859-1 as specified by
      * http://java.sun.com/j2se/1.5.0/docs/api/java/util/Properties.html)
      */
@@ -273,9 +275,6 @@ public class PropertiesConfiguration extends BaseConfiguration
 
     /** The IOFactory for creating readers and writers.*/
     private IOFactory ioFactory;
-
-    /** The current {@code FileLocator}. */
-    private FileLocator locator;
 
     /** Allow file inclusion or not */
     private boolean includesAllowed = true;
@@ -549,7 +548,7 @@ public class PropertiesConfiguration extends BaseConfiguration
     @Override
     public void initFileLocator(final FileLocator locator)
     {
-        this.locator = locator;
+        configurationFileLocator.setLocator(locator);
     }
 
     /**
@@ -589,6 +588,7 @@ public class PropertiesConfiguration extends BaseConfiguration
     public Object clone()
     {
         final PropertiesConfiguration copy = (PropertiesConfiguration) super.clone();
+		copy.configurationFileLocator = (PropertiesFileLocator) this.configurationFileLocator.clone();
         if (layout != null)
         {
             copy.setLayout(new PropertiesConfigurationLayout(layout));
@@ -626,7 +626,7 @@ public class PropertiesConfiguration extends BaseConfiguration
                         getListDelimiterHandler().split(value, true);
                 for (final String f : files)
                 {
-                    loadIncludeFile(interpolate(f), false);
+                    configurationFileLocator.loadIncludeFile(interpolate(f), false, this);
                 }
             }
             result = false;
@@ -641,7 +641,7 @@ public class PropertiesConfiguration extends BaseConfiguration
                         getListDelimiterHandler().split(value, true);
                 for (final String f : files)
                 {
-                    loadIncludeFile(interpolate(f), true);
+                    configurationFileLocator.loadIncludeFile(interpolate(f), true, this);
                 }
             }
             result = false;
@@ -1794,76 +1794,5 @@ public class PropertiesConfiguration extends BaseConfiguration
     private static boolean needsUnescape(final char ch)
     {
         return UNESCAPE_CHARACTERS.indexOf(ch) >= 0;
-    }
-
-    /**
-     * Helper method for loading an included properties file. This method is
-     * called by {@code load()} when an {@code include} property
-     * is encountered. It tries to resolve relative file names based on the
-     * current base path. If this fails, a resolution based on the location of
-     * this properties file is tried.
-     *
-     * @param fileName the name of the file to load
-     * @param optional whether or not the {@code fileName} is optional
-     * @throws ConfigurationException if loading fails
-     */
-    private void loadIncludeFile(final String fileName, final boolean optional) throws ConfigurationException
-    {
-        if (locator == null)
-        {
-            throw new ConfigurationException("Load operation not properly "
-                    + "initialized! Do not call read(InputStream) directly,"
-                    + " but use a FileHandler to load a configuration.");
-        }
-
-        URL url = locateIncludeFile(locator.getBasePath(), fileName);
-        if (url == null)
-        {
-            final URL baseURL = locator.getSourceURL();
-            if (baseURL != null)
-            {
-                url = locateIncludeFile(baseURL.toString(), fileName);
-            }
-        }
-
-        if (optional && url == null)
-        {
-            return;
-        }
-
-        if (url == null)
-        {
-            throw new ConfigurationException("Cannot resolve include file "
-                    + fileName);
-        }
-
-        final FileHandler fh = new FileHandler(this);
-        fh.setFileLocator(locator);
-        final FileLocator orgLocator = locator;
-        try
-        {
-            fh.load(url);
-        }
-        finally
-        {
-            locator = orgLocator; // reset locator which is changed by load
-        }
-    }
-
-    /**
-     * Tries to obtain the URL of an include file using the specified (optional)
-     * base path and file name.
-     *
-     * @param basePath the base path
-     * @param fileName the file name
-     * @return the URL of the include file or <b>null</b> if it cannot be
-     *         resolved
-     */
-    private URL locateIncludeFile(final String basePath, final String fileName)
-    {
-        final FileLocator includeLocator =
-                FileLocatorUtils.fileLocator(locator).sourceURL(null)
-                        .basePath(basePath).fileName(fileName).create();
-        return FileLocatorUtils.locate(includeLocator);
     }
 }
