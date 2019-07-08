@@ -17,8 +17,6 @@
 package org.apache.commons.configuration2.event;
 
 import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -75,7 +73,7 @@ public class BaseEventSource implements EventSource
      */
     public BaseEventSource()
     {
-        initListeners();
+    	eventListeners = new EventListenerList();
     }
 
     /**
@@ -91,14 +89,7 @@ public class BaseEventSource implements EventSource
     public <T extends Event> Collection<EventListener<? super T>> getEventListeners(
             final EventType<T> eventType)
     {
-        final List<EventListener<? super T>> result =
-                new LinkedList<>();
-        for (final EventListener<? super T> l : eventListeners
-                .getEventListeners(eventType))
-        {
-            result.add(l);
-        }
-        return Collections.unmodifiableCollection(result);
+    	return eventListeners.getEventListenersCollection(eventType);
     }
 
     /**
@@ -166,11 +157,7 @@ public class BaseEventSource implements EventSource
      */
     public void clearErrorListeners()
     {
-        for (final EventListenerRegistrationData<? extends ConfigurationErrorEvent> reg : eventListeners
-                .getRegistrationsForSuperType(ConfigurationErrorEvent.ANY))
-        {
-            eventListeners.removeEventListener(reg);
-        }
+    	eventListeners.clearErrorListeners();
     }
 
     /**
@@ -307,15 +294,7 @@ public class BaseEventSource implements EventSource
     {
         final BaseEventSource copy = (BaseEventSource) super.clone();
 		copy.baseEventSourceData = (BaseEventSourceData) this.baseEventSourceData.clone();
-        copy.initListeners();
+        copy.eventListeners = new EventListenerList();
         return copy;
-    }
-
-    /**
-     * Initializes the collections for storing registered event listeners.
-     */
-    private void initListeners()
-    {
-        eventListeners = new EventListenerList();
     }
 }

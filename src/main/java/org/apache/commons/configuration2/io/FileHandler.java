@@ -28,6 +28,7 @@ import java.io.UnsupportedEncodingException;
 import java.io.Writer;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -118,7 +119,9 @@ import org.apache.commons.logging.LogFactory;
  */
 public class FileHandler
 {
-    /** Constant for the URI scheme for files. */
+    private FileHandlerListeners fileHandlerListeners = new FileHandlerListeners();
+
+	/** Constant for the URI scheme for files. */
     private static final String FILE_SCHEME = "file:";
 
     /** Constant for the URI scheme for files with slashes. */
@@ -160,10 +163,6 @@ public class FileHandler
 
     /** A reference to the current {@code FileLocator} object. */
     private final AtomicReference<FileLocator> fileLocator;
-
-    /** A collection with the registered listeners. */
-    private final List<FileHandlerListener> listeners =
-            new CopyOnWriteArrayList<>();
 
     /**
      * Creates a new instance of {@code FileHandler} which is not associated
@@ -252,11 +251,7 @@ public class FileHandler
      */
     public void addFileHandlerListener(final FileHandlerListener l)
     {
-        if (l == null)
-        {
-            throw new IllegalArgumentException("Listener must not be null!");
-        }
-        listeners.add(l);
+        fileHandlerListeners.addFileHandlerListener(l);
     }
 
     /**
@@ -266,7 +261,7 @@ public class FileHandler
      */
     public void removeFileHandlerListener(final FileHandlerListener l)
     {
-        listeners.remove(l);
+        fileHandlerListeners.removeFileHandlerListener(l);
     }
 
     /**
@@ -312,7 +307,7 @@ public class FileHandler
                 builder.sourceURL(null);
             }
         }
-        .update();
+        .update(this);
     }
 
     /**
@@ -365,7 +360,7 @@ public class FileHandler
                 builder.sourceURL(null);
             }
         }
-        .update();
+        .update(this);
     }
 
     /**
@@ -403,7 +398,7 @@ public class FileHandler
                 builder.fileName(fileName).basePath(basePath).sourceURL(null);
             }
         }
-        .update();
+        .update(this);
     }
 
     /**
@@ -472,7 +467,7 @@ public class FileHandler
                 builder.basePath(null).fileName(null);
             }
         }
-        .update();
+        .update(this);
     }
 
     /**
@@ -507,7 +502,7 @@ public class FileHandler
         }
 
         fileLocator.set(locator);
-        fireLocationChangedEvent();
+        fileHandlerListeners.fireLocationChangedEvent(this);
     }
 
     /**
@@ -534,7 +529,7 @@ public class FileHandler
                 builder.basePath(null).fileName(null).sourceURL(null);
             }
         }
-        .update();
+        .update(this);
     }
 
     /**
@@ -565,7 +560,7 @@ public class FileHandler
                 builder.encoding(encoding);
             }
         }
-        .update();
+        .update(this);
     }
 
     /**
@@ -597,7 +592,7 @@ public class FileHandler
                 builder.fileSystem(fileSystem);
             }
         }
-        .update();
+        .update(this);
     }
 
     /**
@@ -642,7 +637,7 @@ public class FileHandler
             }
 
         }
-        .update();
+        .update(this);
     }
 
     /**
@@ -1127,7 +1122,7 @@ public class FileHandler
      */
     private void loadFromReader(final Reader in) throws ConfigurationException
     {
-        fireLoadingEvent();
+        fileHandlerListeners.fireLoadingEvent(this);
         try
         {
             getContent().read(in);
@@ -1138,7 +1133,7 @@ public class FileHandler
         }
         finally
         {
-            fireLoadedEvent();
+            fileHandlerListeners.fireLoadedEvent(this);
         }
     }
 
@@ -1325,7 +1320,7 @@ public class FileHandler
      */
     private void saveToWriter(final Writer out) throws ConfigurationException
     {
-        fireSavingEvent();
+        fileHandlerListeners.fireSavingEvent(this);
         try
         {
             getContent().write(out);
@@ -1336,7 +1331,7 @@ public class FileHandler
         }
         finally
         {
-            fireSavedEvent();
+            fileHandlerListeners.fireSavedEvent(this);
         }
     }
 
@@ -1383,61 +1378,6 @@ public class FileHandler
     {
         checkContent();
         return getFileLocator();
-    }
-
-    /**
-     * Notifies the registered listeners about the start of a load operation.
-     */
-    private void fireLoadingEvent()
-    {
-        for (final FileHandlerListener l : listeners)
-        {
-            l.loading(this);
-        }
-    }
-
-    /**
-     * Notifies the registered listeners about a completed load operation.
-     */
-    private void fireLoadedEvent()
-    {
-        for (final FileHandlerListener l : listeners)
-        {
-            l.loaded(this);
-        }
-    }
-
-    /**
-     * Notifies the registered listeners about the start of a save operation.
-     */
-    private void fireSavingEvent()
-    {
-        for (final FileHandlerListener l : listeners)
-        {
-            l.saving(this);
-        }
-    }
-
-    /**
-     * Notifies the registered listeners about a completed save operation.
-     */
-    private void fireSavedEvent()
-    {
-        for (final FileHandlerListener l : listeners)
-        {
-            l.saved(this);
-        }
-    }
-
-    /**
-     * Notifies the registered listeners about a property update.
-     */
-    private void fireLocationChangedEvent()
-    {
-        for (final FileHandlerListener l : listeners)
-        {
-            l.locationChanged(this);
-        }
     }
 
     /**
@@ -1546,7 +1486,7 @@ public class FileHandler
          * Performs an update of the enclosing file handler's
          * {@code FileLocator} object.
          */
-        public void update()
+        public void update(FileHandler handler)
         {
             boolean done;
             do
@@ -1557,7 +1497,8 @@ public class FileHandler
                 updateBuilder(builder);
                 done = fileLocator.compareAndSet(oldLocator, builder.create());
             } while (!done);
-            fireLocationChangedEvent();
+            
+            fileHandlerListeners.fireLocationChangedEvent(handler);
         }
 
         /**
@@ -1570,4 +1511,75 @@ public class FileHandler
          */
         protected abstract void updateBuilder(FileLocatorBuilder builder);
     }
+    
+    public class FileHandlerListeners {
+    	private final List<FileHandlerListener> listeners = new CopyOnWriteArrayList<>();
+
+    	/**
+    	* Adds a listener to this  {@code  FileHandler} . It is notified about property changes and IO operations.
+    	* @param l  the listener to be added (must not be <b>null</b>)
+    	* @throws IllegalArgumentException  if the listener is <b>null</b>
+    	*/
+    	public void addFileHandlerListener(final FileHandlerListener l) {
+    		if (l == null) {
+    			throw new IllegalArgumentException("Listener must not be null!");
+    		}
+    		listeners.add(l);
+    	}
+
+    	/**
+    	* Removes the specified listener from this object.
+    	* @param l  the listener to be removed
+    	*/
+    	public void removeFileHandlerListener(final FileHandlerListener l) {
+    		listeners.remove(l);
+    	}
+
+    	/**
+    	* Notifies the registered listeners about the start of a load operation.
+    	*/
+    	public void fireLoadingEvent(FileHandler fileHandler) {
+    		for (final FileHandlerListener l : listeners) {
+    			l.loading(fileHandler);
+    		}
+    	}
+
+    	/**
+    	* Notifies the registered listeners about a completed load operation.
+    	*/
+    	public void fireLoadedEvent(FileHandler fileHandler) {
+    		for (final FileHandlerListener l : listeners) {
+    			l.loaded(fileHandler);
+    		}
+    	}
+
+    	/**
+    	* Notifies the registered listeners about the start of a save operation.
+    	*/
+    	public void fireSavingEvent(FileHandler fileHandler) {
+    		for (final FileHandlerListener l : listeners) {
+    			l.saving(fileHandler);
+    		}
+    	}
+
+    	/**
+    	* Notifies the registered listeners about a completed save operation.
+    	*/
+    	public void fireSavedEvent(FileHandler fileHandler) {
+    		for (final FileHandlerListener l : listeners) {
+    			l.saved(fileHandler);
+    		}
+    	}
+
+    	/**
+    	* Notifies the registered listeners about a property update.
+    	*/
+    	public void fireLocationChangedEvent(FileHandler fileHandler) {
+    		for (final FileHandlerListener l : listeners) {
+    			l.locationChanged(fileHandler);    			
+    		}
+    	}
+    }
+    
+
 }

@@ -16,6 +16,7 @@
  */
 package org.apache.commons.configuration2.event;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -162,6 +163,28 @@ public class EventListenerList
     }
 
     /**
+     * Returns a collection with all event listeners of the specified event type
+     * that are currently registered at this object.
+     *
+     * @param eventType the event type object
+     * @param <T> the event type
+     * @return a collection with the event listeners of the specified event type
+     *         (this collection is a snapshot of the currently registered
+     *         listeners; it cannot be manipulated)
+     */
+    public <T extends Event> Collection<EventListener<? super T>> getEventListenersCollection(
+            final EventType<T> eventType)
+    {
+        final List<EventListener<? super T>> result =
+                new LinkedList<>();
+        for (final EventListener<? super T> l : getEventListeners(eventType))
+        {
+            result.add(l);
+        }
+        return Collections.unmodifiableCollection(result);
+    }
+    
+    /**
      * Returns an {@code Iterable} allowing access to all event listeners stored
      * in this list which are compatible with the specified event type.
      *
@@ -256,6 +279,20 @@ public class EventListenerList
     public void clear()
     {
         listeners.clear();
+    }
+    
+    /**
+     * Removes all registered error listeners.
+     *
+     * @since 1.4
+     */
+    public void clearErrorListeners()
+    {
+        for (final EventListenerRegistrationData<? extends ConfigurationErrorEvent> reg : 
+        	getRegistrationsForSuperType(ConfigurationErrorEvent.ANY))
+        {
+            removeEventListener(reg);
+        }
     }
 
     /**

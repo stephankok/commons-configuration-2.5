@@ -163,7 +163,7 @@ public class ExprLookup implements Lookup
      */
     public Variables getVariables()
     {
-        return new Variables(variables);
+        return variables.copy();
     }
 
     /**
@@ -230,7 +230,7 @@ public class ExprLookup implements Lookup
         try
         {
             final Expression exp = engine.createExpression(result);
-            final Object exprResult = exp.evaluate(createContext());
+            final Object exprResult = exp.evaluate(variables.createContext());
             result = (exprResult != null) ? String.valueOf(exprResult) : null;
         }
         catch (final Exception e)
@@ -275,33 +275,6 @@ public class ExprLookup implements Lookup
     }
 
     /**
-     * Creates a new {@code JexlContext} and initializes it with the variables
-     * managed by this Lookup object.
-     *
-     * @return the newly created context
-     */
-    private JexlContext createContext()
-    {
-        final JexlContext ctx = new MapContext();
-        initializeContext(ctx);
-        return ctx;
-    }
-
-    /**
-     * Initializes the specified context with the variables managed by this
-     * Lookup object.
-     *
-     * @param ctx the context to be initialized
-     */
-    private void initializeContext(final JexlContext ctx)
-    {
-        for (final Variable var : variables)
-        {
-            ctx.set(var.getName(), var.getValue());
-        }
-    }
-
-    /**
      * List wrapper used to allow the Variables list to be created as beans in
      * DefaultConfigurationBuilder.
      */
@@ -329,11 +302,42 @@ public class ExprLookup implements Lookup
         public Variables(final Variables vars)
         {
             super(vars);
+        }     
+        
+        public Variables copy() {
+        	return (Variables) this.clone();
         }
 
         public Variable getVariable()
         {
             return size() > 0 ? get(size() - 1) : null;
+        }
+        
+        /**
+         * Creates a new {@code JexlContext} and initializes it with the variables
+         * managed by this Lookup object.
+         *
+         * @return the newly created context
+         */
+        private JexlContext createContext()
+        {
+            final JexlContext ctx = new MapContext();
+            initializeContext(ctx);
+            return ctx;
+        }
+        
+        /**
+         * Initializes the specified context with the variables managed by this
+         * Lookup object.
+         *
+         * @param ctx the context to be initialized
+         */
+        private void initializeContext(final JexlContext ctx)
+        {
+            for (final Variable var : this)
+            {
+                ctx.set(var.getName(), var.getValue());
+            }
         }
 
     }

@@ -212,7 +212,9 @@ import org.apache.commons.text.translate.UnicodeEscaper;
 public class PropertiesConfiguration extends BaseConfiguration
     implements FileBasedConfiguration, FileLocatorAware
 {
-    private PropertiesFileLocator configurationFileLocator = new PropertiesFileLocator();
+    private IOFactoryProduct ioFactoryProduct = new IOFactoryProduct();
+
+	private PropertiesFileLocator configurationFileLocator = new PropertiesFileLocator();
 
 	/**
      * The default encoding (ISO-8859-1 as specified by
@@ -229,7 +231,7 @@ public class PropertiesConfiguration extends BaseConfiguration
      * Constant for the default {@code IOFactory}. This instance is used
      * when no specific factory was set.
      */
-    private static final IOFactory DEFAULT_IO_FACTORY = new DefaultIOFactory();
+    public static final IOFactory DEFAULT_IO_FACTORY = new DefaultIOFactory();
 
     /**
      * A string with special characters that need to be unescaped when reading
@@ -269,9 +271,6 @@ public class PropertiesConfiguration extends BaseConfiguration
 
     /** Stores the layout object.*/
     private PropertiesConfigurationLayout layout;
-
-    /** The IOFactory for creating readers and writers.*/
-    private IOFactory ioFactory;
 
     /** Allow file inclusion or not */
     private boolean includesAllowed = true;
@@ -506,7 +505,7 @@ public class PropertiesConfiguration extends BaseConfiguration
      */
     public IOFactory getIOFactory()
     {
-        return (ioFactory != null) ? ioFactory : DEFAULT_IO_FACTORY;
+        return ioFactoryProduct.getIOFactory();
     }
 
     /**
@@ -526,12 +525,7 @@ public class PropertiesConfiguration extends BaseConfiguration
      */
     public void setIOFactory(final IOFactory ioFactory)
     {
-        if (ioFactory == null)
-        {
-            throw new IllegalArgumentException("IOFactory must not be null!");
-        }
-
-        this.ioFactory = ioFactory;
+        ioFactoryProduct.setIOFactory(ioFactory);
     }
 
     /**
@@ -585,6 +579,8 @@ public class PropertiesConfiguration extends BaseConfiguration
     public Object clone()
     {
         final PropertiesConfiguration copy = (PropertiesConfiguration) super.clone();
+		copy.ioFactoryProduct = (IOFactoryProduct) this.ioFactoryProduct
+				.clone();
 		copy.configurationFileLocator = (PropertiesFileLocator) this.configurationFileLocator.clone();
         if (layout != null)
         {

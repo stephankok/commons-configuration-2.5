@@ -87,15 +87,8 @@ class ModelTransaction
 
     /** The {@code NodeKeyResolver} to be used for this transaction. */
     private final NodeKeyResolver<ImmutableNode> resolver;
-
-    /** A new replacement mapping. */
-    private final Map<ImmutableNode, ImmutableNode> replacementMapping;
-
-    /** The nodes replaced in this transaction. */
-    private final Map<ImmutableNode, ImmutableNode> replacedNodes;
-
-    /** A new parent mapping. */
-    private final Map<ImmutableNode, ImmutableNode> parentMapping;
+    
+    private ParentMapping parentMapping;
 
     /** Logging added and removed nodes. */
     private TranscationLog transactionLog;
@@ -106,7 +99,7 @@ class ModelTransaction
      * down in the hierarchy are executed first because they affect the nodes
      * closer to the root.
      */
-    private final OperationsList operations;      
+    private final OperationsList operationsList;      
 
     /** A map with reference objects to be added during this transaction. */
     private Map<ImmutableNode, Object> newReferences;
@@ -128,11 +121,9 @@ class ModelTransaction
             final NodeKeyResolver<ImmutableNode> resolver)
     {
         currentData = treeData;
-        this.resolver = resolver;
-        replacementMapping = getCurrentData().copyReplacementMapping();
-        replacedNodes = new HashMap<>();
-        parentMapping = getCurrentData().copyParentMapping();
-        operations = new OperationsList();
+        this.resolver = resolver;       
+        parentMapping = new ParentMapping();
+        operationsList = new OperationsList();
         transactionLog = new TranscationLog();
         queryRoot = initQueryRoot(treeData, selector);
         rootNodeSelector = selector;
@@ -307,9 +298,9 @@ class ModelTransaction
      */
     public TreeData execute()
     {
-        operations.executeOperations();
-        updateParentMapping();
-        return new TreeData(newRoot, parentMapping, replacementMapping,
+    	operationsList.executeOperations();
+    	parentMapping.updateParentMapping();
+        return new TreeData(newRoot, parentMapping.getParentMap(), parentMapping.getReplacementMap(),
                 currentData.getNodeTracker().update(newRoot, rootNodeSelector,
                         getResolver(), getCurrentData()), updateReferenceTracker()
         );
@@ -346,7 +337,7 @@ class ModelTransaction
      */
     Operations fetchOperations(final ImmutableNode target, final int level)
     {
-        return operations.fetchOperations(target, level);
+        return operationsList.fetchOperations(target, level);
     }
 
     /**
@@ -385,98 +376,6 @@ class ModelTransaction
     }
 
     /**
-     * Updates the parent mapping for the resulting {@code TreeData} instance.
-     * This method is called after all update operations have been executed. It
-     * ensures that the parent mapping is updated for the changes on the nodes
-     * structure.
-     */
-    private void updateParentMapping()
-    {
-        replacementMapping.putAll(replacedNodes);
-        if (replacementMapping.size() > MAX_REPLACEMENTS)
-        {
-            rebuildParentMapping();
-        }
-        else
-        {
-            updateParentMappingForAddedNodes();
-            updateParentMappingForRemovedNodes();
-        }
-    }
-
-    /**
-     * Rebuilds the parent mapping from scratch. This method is called if the
-     * replacement mapping exceeds its maximum size. In this case, it is
-     * cleared, and a new parent mapping is constructed for the new root node.
-     */
-    private void rebuildParentMapping()
-    {
-        replacementMapping.clear();
-        parentMapping.clear();
-        InMemoryNodeModel.updateParentMapping(parentMapping, newRoot);
-    }
-
-    /**
-     * Adds newly added nodes and their children to the parent mapping.
-     */
-    private void updateParentMappingForAddedNodes()
-    {
-        for (final ImmutableNode node : transactionLog.getAddedNodes())
-        {
-            InMemoryNodeModel.updateParentMapping(parentMapping, node);
-        }
-    }
-
-    /**
-     * Removes nodes that have been removed during this transaction from the
-     * parent and replacement mappings.
-     */
-    private void updateParentMappingForRemovedNodes()
-    {
-        for (final ImmutableNode node : transactionLog.getRemovedNodes())
-        {
-            removeNodesFromParentAndReplacementMapping(node);
-        }
-    }
-
-    /**
-     * Removes a node and its children (recursively) from the parent and the
-     * replacement mappings.
-     *
-     * @param root the root of the subtree to be removed
-     */
-    private void removeNodesFromParentAndReplacementMapping(final ImmutableNode root)
-    {
-        NodeTreeWalker.INSTANCE.walkBFS(root,
-                new ConfigurationNodeVisitorAdapter<ImmutableNode>()
-                {
-                    @Override
-                    public void visitBeforeChildren(final ImmutableNode node,
-                            final NodeHandler<ImmutableNode> handler)
-                    {
-                    	transactionLog.remove(node);
-                        parentMapping.remove(node);
-                        removeNodeFromReplacementMapping(node);
-                    }
-                }, getCurrentData());
-    }
-
-    /**
-     * Removes the specified node completely from the replacement mapping. This
-     * also includes the nodes that replace the given one.
-     *
-     * @param node the node to be removed
-     */
-    private void removeNodeFromReplacementMapping(final ImmutableNode node)
-    {
-        ImmutableNode replacement = node;
-        do
-        {
-            replacement = replacementMapping.remove(replacement);
-        } while (replacement != null);
-    }
-
-    /**
      * Returns an updated {@code ReferenceTracker} instance. The changes
      * performed during this transaction are applied to the tracker.
      *
@@ -489,7 +388,7 @@ class ModelTransaction
         {
             tracker = tracker.addReferences(newReferences);
         }
-        return tracker.updateReferences(replacedNodes, transactionLog.getAllRemovedNodes());
+        return tracker.updateReferences(parentMapping.getReplacedNodes(), transactionLog.getAllRemovedNodes());
     }
 
     /**
@@ -739,7 +638,7 @@ class ModelTransaction
                 if (repl != null)
                 {
                     resultNodes.add(repl);
-                    replacedNodes.put(nd, repl);
+                    parentMapping.getReplacedNodes().put(nd, repl);
                 }
                 else
                 {
@@ -1012,7 +911,7 @@ class ModelTransaction
             {
                 // reached the root node
                 newRoot = node;
-                replacedNodes.put(target, node);
+                parentMapping.getReplacedNodes().put(target, node);
             }
             else
             {
@@ -1058,7 +957,7 @@ class ModelTransaction
             {
                 for (final ImmutableNode child : addedNodesInOperation)
                 {
-                    parentMapping.put(child, node);
+                    parentMapping.getParentMap().put(child, node);
                     transactionLog.add(child);
                 }
             }
@@ -1156,6 +1055,128 @@ class ModelTransaction
         
         private void add(ImmutableNode node) {
         	addedNodes.add(node);
+        }
+    }
+    
+    private class ParentMapping {
+    	/** A new parent mapping. */
+        private final Map<ImmutableNode, ImmutableNode> parentMapping;
+        
+        /** A new replacement mapping. */
+        private final Map<ImmutableNode, ImmutableNode> replacementMapping;
+        
+        /** The nodes replaced in this transaction. */
+        private final Map<ImmutableNode, ImmutableNode> replacedNodes;
+        
+        public ParentMapping() {
+        	parentMapping = getCurrentData().copyParentMapping();
+            replacementMapping = getCurrentData().copyReplacementMapping();
+            replacedNodes = new HashMap<>(); 
+        }
+        
+        private Map<ImmutableNode, ImmutableNode> getParentMap() {
+        	return parentMapping;
+        }
+        
+        private Map<ImmutableNode, ImmutableNode> getReplacementMap() {
+        	return replacementMapping;
+        }
+        
+        private Map<ImmutableNode, ImmutableNode> getReplacedNodes() {
+        	return replacedNodes;
+        }
+        
+    	
+    	/**
+         * Updates the parent mapping for the resulting {@code TreeData} instance.
+         * This method is called after all update operations have been executed. It
+         * ensures that the parent mapping is updated for the changes on the nodes
+         * structure.
+         */
+        private void updateParentMapping()
+        {
+            replacementMapping.putAll(replacedNodes);
+            if (replacementMapping.size() > MAX_REPLACEMENTS)
+            {
+                rebuildParentMapping();
+            }
+            else
+            {
+                updateParentMappingForAddedNodes();
+                updateParentMappingForRemovedNodes();
+            }
+        }
+
+        /**
+         * Rebuilds the parent mapping from scratch. This method is called if the
+         * replacement mapping exceeds its maximum size. In this case, it is
+         * cleared, and a new parent mapping is constructed for the new root node.
+         */
+        private void rebuildParentMapping()
+        {
+            replacementMapping.clear();
+            parentMapping.clear();
+            InMemoryNodeModel.updateParentMapping(parentMapping, newRoot);
+        }
+
+        /**
+         * Adds newly added nodes and their children to the parent mapping.
+         */
+        private void updateParentMappingForAddedNodes()
+        {
+            for (final ImmutableNode node : transactionLog.getAddedNodes())
+            {
+                InMemoryNodeModel.updateParentMapping(parentMapping, node);
+            }
+        }
+
+        /**
+         * Removes nodes that have been removed during this transaction from the
+         * parent and replacement mappings.
+         */
+        private void updateParentMappingForRemovedNodes()
+        {
+            for (final ImmutableNode node : transactionLog.getRemovedNodes())
+            {
+                removeNodesFromParentAndReplacementMapping(node);
+            }
+        }
+
+        /**
+         * Removes a node and its children (recursively) from the parent and the
+         * replacement mappings.
+         *
+         * @param root the root of the subtree to be removed
+         */
+        private void removeNodesFromParentAndReplacementMapping(final ImmutableNode root)
+        {
+            NodeTreeWalker.INSTANCE.walkBFS(root,
+                    new ConfigurationNodeVisitorAdapter<ImmutableNode>()
+                    {
+                        @Override
+                        public void visitBeforeChildren(final ImmutableNode node,
+                                final NodeHandler<ImmutableNode> handler)
+                        {
+                        	transactionLog.remove(node);
+                            parentMapping.remove(node);
+                            removeNodeFromReplacementMapping(node);
+                        }
+                    }, getCurrentData());
+        }
+
+        /**
+         * Removes the specified node completely from the replacement mapping. This
+         * also includes the nodes that replace the given one.
+         *
+         * @param node the node to be removed
+         */
+        private void removeNodeFromReplacementMapping(final ImmutableNode node)
+        {
+            ImmutableNode replacement = node;
+            do
+            {
+                replacement = replacementMapping.remove(replacement);
+            } while (replacement != null);
         }
     }
 }
