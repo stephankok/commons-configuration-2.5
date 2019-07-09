@@ -5,32 +5,23 @@ import java.util.Map;
 import java.util.HashMap;
 
 public class ImmutableNodeMappings {
-	 /** A map that associates the parent node to each node. */
-    private final Map<ImmutableNode, ImmutableNode> parentMapping;
+	 private ImmutableNodeMappingsProduct immutableNodeMappingsProduct;
 
-    /**
-     * Stores information about nodes which have been replaced by
-     * manipulations of the structure. This map is used to avoid that the
-     * parent mapping has to be updated after each change.
-     */
-    private final Map<ImmutableNode, ImmutableNode> replacementMapping;
-
-    /** An inverse replacement mapping. */
+	/** An inverse replacement mapping. */
     private final Map<ImmutableNode, ImmutableNode> inverseReplacementMapping;
 
 	public ImmutableNodeMappings(Map<ImmutableNode, ImmutableNode> parentMapping,
 			Map<ImmutableNode, ImmutableNode> replacements) {
-		this.parentMapping = parentMapping;
-		this.replacementMapping = replacements;
+		this.immutableNodeMappingsProduct = new ImmutableNodeMappingsProduct(parentMapping, replacements);
 		inverseReplacementMapping = createInverseMapping(replacements);
 	}
 
 	public Map<ImmutableNode, ImmutableNode> getParentMapping() {
-		return parentMapping;
+		return immutableNodeMappingsProduct.getParentMapping();
 	}
 
 	public Map<ImmutableNode, ImmutableNode> getReplacementMapping() {
-		return replacementMapping;
+		return immutableNodeMappingsProduct.getReplacementMapping();
 	}
 
 	/**
@@ -38,7 +29,7 @@ public class ImmutableNodeMappings {
 	* @return  the copy of the parent mapping
 	*/
 	public Map<ImmutableNode, ImmutableNode> copyParentMapping() {
-		return new HashMap<>(parentMapping);
+		return immutableNodeMappingsProduct.copyParentMapping();
 	}
 
 	/**
@@ -46,7 +37,7 @@ public class ImmutableNodeMappings {
 	* @return  the copy of the replacement mapping
 	*/
 	public Map<ImmutableNode, ImmutableNode> copyReplacementMapping() {
-		return new HashMap<>(replacementMapping);
+		return immutableNodeMappingsProduct.copyReplacementMapping();
 	}
 	
 	public ImmutableNode getParent(final ImmutableNode node) {

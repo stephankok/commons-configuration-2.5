@@ -58,11 +58,7 @@ public class PeriodicReloadingTrigger
     /** The executor service used by this trigger. */
     private final ScheduledExecutorService executorService;
 
-    /** The associated reloading controller. */
-    private final ReloadingController controller;
-
-    /** The parameter to be passed to the controller. */
-    private final Object controllerParam;
+    private final Trigger createTrigger;
 
     /** The period. */
     private final long period;
@@ -95,8 +91,7 @@ public class PeriodicReloadingTrigger
                     "ReloadingController must not be null!");
         }
 
-        controller = ctrl;
-        controllerParam = ctrlParam;
+        createTrigger =  new Trigger(ctrl, ctrlParam);        
         period = triggerPeriod;
         timeUnit = unit;
         executorService =
@@ -132,7 +127,7 @@ public class PeriodicReloadingTrigger
         {
             triggerTask =
                     getExecutorService().scheduleAtFixedRate(
-                            createTriggerTaskCommand(), period, period,
+                    		createTrigger.trigger(), period, period,
                             timeUnit);
         }
     }
@@ -202,22 +197,7 @@ public class PeriodicReloadingTrigger
         return executorService;
     }
 
-    /**
-     * Creates the task which triggers the reloading controller.
-     *
-     * @return the newly created trigger task
-     */
-    private Runnable createTriggerTaskCommand()
-    {
-        return new Runnable()
-        {
-            @Override
-            public void run()
-            {
-                controller.checkForReloading(controllerParam);
-            }
-        };
-    }
+   
 
     /**
      * Creates a default executor service. This method is called if no executor
@@ -232,5 +212,37 @@ public class PeriodicReloadingTrigger
                         .namingPattern("ReloadingTrigger-%s").daemon(true)
                         .build();
         return Executors.newScheduledThreadPool(1, factory);
+    }
+    
+    private class Trigger
+    {
+        /** The associated reloading controller. */
+        private final ReloadingController controller;
+
+        /** The parameter to be passed to the controller. */
+        private final Object controllerParam;
+        
+        public Trigger(ReloadingController controller, Object controllerParam)
+        {
+        	this.controller = controller;
+        	this.controllerParam = controllerParam;
+        }
+        
+    	 /**
+         * Creates the task which triggers the reloading controller.
+         *
+         * @return the newly created trigger task
+         */
+        private Runnable trigger()
+        {
+            return new Runnable()
+            {
+                @Override
+                public void run()
+                {
+                    controller.checkForReloading(controllerParam);
+                }
+            };
+        }
     }
 }

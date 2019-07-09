@@ -209,14 +209,10 @@ public class DefaultParametersManager
      */
     private static class DefaultHandlerData
     {
-        /** The handler object. */
-        private final DefaultParametersHandler<?> handler;
+        private DefaultHandlerDataProduct defaultHandlerDataProduct;
 
-        /** The class supported by this handler. */
+		/** The class supported by this handler. */
         private final Class<?> parameterClass;
-
-        /** The start class for applying this handler. */
-        private final Class<?> startClass;
 
         /**
          * Creates a new instance of {@code DefaultHandlerData}.
@@ -228,9 +224,8 @@ public class DefaultParametersManager
         public DefaultHandlerData(final DefaultParametersHandler<?> h, final Class<?> cls,
                 final Class<?> startCls)
         {
-            handler = h;
-            parameterClass = cls;
-            startClass = startCls;
+            this.defaultHandlerDataProduct = new DefaultHandlerDataProduct(h, startCls);
+			parameterClass = cls;
         }
 
         /**
@@ -246,11 +241,11 @@ public class DefaultParametersManager
         public void applyHandlerIfMatching(final BuilderParameters obj)
         {
             if (parameterClass.isInstance(obj)
-                    && (startClass == null || startClass.isInstance(obj)))
+                    && (defaultHandlerDataProduct.getStartClass() == null || defaultHandlerDataProduct.getStartClass().isInstance(obj)))
             {
                 @SuppressWarnings("rawtypes")
                 final
-                DefaultParametersHandler handlerUntyped = handler;
+                DefaultParametersHandler handlerUntyped = defaultHandlerDataProduct.getHandler();
                 handlerUntyped.initializeDefaults(obj);
             }
         }
@@ -267,8 +262,7 @@ public class DefaultParametersManager
         public boolean isOccurrence(final DefaultParametersHandler<?> h,
                 final Class<?> startCls)
         {
-            return h == handler
-                    && (startCls == null || startCls.equals(startClass));
+            return defaultHandlerDataProduct.isOccurrence(h, startCls);
         }
     }
 }

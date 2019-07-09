@@ -811,7 +811,7 @@ public class CombinedConfigurationBuilder extends BasicConfigurationBuilder<Comb
             initNodeCombinerListNodes(addConfig, config, KEY_ADDITIONAL_LIST);
             final List<ConfigurationBuilder<? extends Configuration>> unionBuilders =
                     data.createAndAddConfigurations(addConfig,
-                            data.unionDeclarations, data.unionBuilders);
+                            data.getUnionSources(), data.unionBuilders);
             if (createBuilders)
             {
                 data.unionBuilders.addAll(unionBuilders);
@@ -1318,11 +1318,7 @@ public class CombinedConfigurationBuilder extends BasicConfigurationBuilder<Comb
      */
     private class ConfigurationSourceData
     {
-        /** A list with data for all builders for override configurations. */
-        private final List<ConfigurationDeclaration> overrideDeclarations;
-
-        /** A list with data for all builders for union configurations. */
-        private final List<ConfigurationDeclaration> unionDeclarations;
+        private ConfigurationDeclarations configDeclaration;
 
         /** A list with the builders for override configurations. */
         private final List<ConfigurationBuilder<? extends Configuration>> overrideBuilders;
@@ -1331,26 +1327,17 @@ public class CombinedConfigurationBuilder extends BasicConfigurationBuilder<Comb
         private final List<ConfigurationBuilder<? extends Configuration>> unionBuilders;
 
         /** A map for direct access to a builder by its name. */
-        private final Map<String, ConfigurationBuilder<? extends Configuration>> namedBuilders;
-
-        /** A collection with all child builders. */
-        private final Collection<ConfigurationBuilder<? extends Configuration>> allBuilders;
-
-        /** A listener for reacting on changes of sub builders. */
-        private final EventListener<ConfigurationBuilderEvent> changeListener;
+        private final ConfigurationBuilders configBuilders;
 
         /**
          * Creates a new instance of {@code ConfigurationSourceData}.
          */
         public ConfigurationSourceData()
         {
-            overrideDeclarations = new ArrayList<>();
-            unionDeclarations = new ArrayList<>();
+        	configDeclaration = new ConfigurationDeclarations();    
+        	configBuilders = new ConfigurationBuilders();
             overrideBuilders = new ArrayList<>();
-            unionBuilders = new ArrayList<>();
-            namedBuilders = new HashMap<>();
-            allBuilders = new LinkedList<>();
-            changeListener = createBuilderChangeListener();
+            unionBuilders = new ArrayList<>();            
         }
 
         /**
@@ -1362,11 +1349,142 @@ public class CombinedConfigurationBuilder extends BasicConfigurationBuilder<Comb
         public void initFromDefinitionConfiguration(
                 final HierarchicalConfiguration<?> config) throws ConfigurationException
         {
-            overrideDeclarations.addAll(createDeclarations(fetchTopLevelOverrideConfigs(config)));
-            overrideDeclarations.addAll(createDeclarations(config.childConfigurationsAt(KEY_OVERRIDE)));
-            unionDeclarations.addAll(createDeclarations(config.childConfigurationsAt(KEY_UNION)));
+        	configDeclaration.init(config);
         }
 
+        /**
+         * Processes the declaration of configuration builder providers, creates
+         * the corresponding builder if necessary, obtains configurations, and
+         * adds them to the specified result configuration.
+         *
+         * @param ccResult the result configuration
+         * @param srcDecl the collection with the declarations of configuration
+         *        sources to process
+         * @return a list with configuration builders
+         * @throws ConfigurationException if an error occurs
+         */
+        public List<ConfigurationBuilder<? extends Configuration>> createAndAddConfigurations(
+                final CombinedConfiguration ccResult,
+                final List<ConfigurationDeclaration> srcDecl,
+                final List<ConfigurationBuilder<? extends Configuration>> builders)
+                throws ConfigurationException
+        {
+        	return configBuilders.createAndAddConfigurations(ccResult, srcDecl, builders);
+        }
+
+        /**
+         * Frees resources used by this object and performs clean up. This
+         * method is called when the owning builder is reset.
+         */
+        public void cleanUp()
+        {
+        	configBuilders.cleanUp();
+        }
+
+        /**
+         * Returns a collection containing the builders for all child
+         * configuration sources.
+         *
+         * @return the child configuration builders
+         */
+        public Collection<ConfigurationBuilder<? extends Configuration>> getChildBuilders()
+        {
+            return configBuilders.getAllBuilders();
+        }
+
+        /**
+         * Returns a collection with all configuration source declarations
+         * defined in the override section.
+         *
+         * @return the override configuration builders
+         */
+        public List<ConfigurationDeclaration> getOverrideSources()
+        {
+            return configDeclaration.getOverride();
+        }
+
+        /**
+         * Returns a collection with all configuration source declarations
+         * defined in the union section.
+         *
+         * @return the union configuration builders
+         */
+        public List<ConfigurationDeclaration> getUnionSources()
+        {
+            return configDeclaration.getUnion();
+        }
+
+        /**
+         * Returns the {@code ConfigurationBuilder} with the given name. If no
+         * such builder is defined in the definition configuration, result is
+         * <b>null</b>.
+         *
+         * @param name the name of the builder in question
+         * @return the builder with this name or <b>null</b>
+         */
+        public ConfigurationBuilder<? extends Configuration> getNamedBuilder(
+                final String name)
+        {
+            return configBuilders.getNamedBuilder(name);
+        }
+
+        /**
+         * Returns a set with the names of all known named builders.
+         *
+         * @return the names of the available sub builders
+         */
+        public Set<String> builderNames()
+        {
+            return configBuilders.builderNames();
+        }                 
+    }
+    
+    private class ConfigurationBuilders
+    {
+    	/** A map for direct access to a builder by its name. */
+        private final Map<String, ConfigurationBuilder<? extends Configuration>> namedBuilders;
+
+        /** A collection with all child builders. */
+        private final Collection<ConfigurationBuilder<? extends Configuration>> allBuilders;
+
+        /** A listener for reacting on changes of sub builders. */
+        private final EventListener<ConfigurationBuilderEvent> changeListener;
+        
+        public ConfigurationBuilders()
+        {
+        	namedBuilders = new HashMap<>();
+            allBuilders = new LinkedList<>();
+            changeListener = createBuilderChangeListener();
+        }
+        
+        public Collection<ConfigurationBuilder<? extends Configuration>> getAllBuilders() {
+        	return allBuilders;
+        }
+        
+        /**
+         * Returns the {@code ConfigurationBuilder} with the given name. If no
+         * such builder is defined in the definition configuration, result is
+         * <b>null</b>.
+         *
+         * @param name the name of the builder in question
+         * @return the builder with this name or <b>null</b>
+         */
+        public ConfigurationBuilder<? extends Configuration> getNamedBuilder(
+                final String name)
+        {
+            return namedBuilders.get(name);
+        }
+
+        /**
+         * Returns a set with the names of all known named builders.
+         *
+         * @return the names of the available sub builders
+         */
+        public Set<String> builderNames()
+        {
+            return namedBuilders.keySet();
+        }  
+        
         /**
          * Processes the declaration of configuration builder providers, creates
          * the corresponding builder if necessary, obtains configurations, and
@@ -1426,64 +1544,7 @@ public class CombinedConfigurationBuilder extends BasicConfigurationBuilder<Comb
             }
             namedBuilders.clear();
         }
-
-        /**
-         * Returns a collection containing the builders for all child
-         * configuration sources.
-         *
-         * @return the child configuration builders
-         */
-        public Collection<ConfigurationBuilder<? extends Configuration>> getChildBuilders()
-        {
-            return allBuilders;
-        }
-
-        /**
-         * Returns a collection with all configuration source declarations
-         * defined in the override section.
-         *
-         * @return the override configuration builders
-         */
-        public List<ConfigurationDeclaration> getOverrideSources()
-        {
-            return overrideDeclarations;
-        }
-
-        /**
-         * Returns a collection with all configuration source declarations
-         * defined in the union section.
-         *
-         * @return the union configuration builders
-         */
-        public List<ConfigurationDeclaration> getUnionSources()
-        {
-            return unionDeclarations;
-        }
-
-        /**
-         * Returns the {@code ConfigurationBuilder} with the given name. If no
-         * such builder is defined in the definition configuration, result is
-         * <b>null</b>.
-         *
-         * @param name the name of the builder in question
-         * @return the builder with this name or <b>null</b>
-         */
-        public ConfigurationBuilder<? extends Configuration> getNamedBuilder(
-                final String name)
-        {
-            return namedBuilders.get(name);
-        }
-
-        /**
-         * Returns a set with the names of all known named builders.
-         *
-         * @return the names of the available sub builders
-         */
-        public Set<String> builderNames()
-        {
-            return namedBuilders.keySet();
-        }
-
+        
         /**
          * Creates a configuration builder based on a source declaration in the
          * definition configuration.
@@ -1545,7 +1606,7 @@ public class CombinedConfigurationBuilder extends BasicConfigurationBuilder<Comb
                 }
             }
         }
-
+        
         /**
          * Creates a listener for builder change events. This listener is
          * registered at all builders for child configurations.
@@ -1560,8 +1621,44 @@ public class CombinedConfigurationBuilder extends BasicConfigurationBuilder<Comb
                     resetResult();
                 }
             };
-        }
+        }  
+    }
+    
+    private class ConfigurationDeclarations
+    {
+    	/** A list with data for all builders for override configurations. */
+        private final List<ConfigurationDeclaration> overrideDeclarations;
 
+        /** A list with data for all builders for union configurations. */
+        private final List<ConfigurationDeclaration> unionDeclarations;
+        
+        public ConfigurationDeclarations()
+        {
+            overrideDeclarations = new ArrayList<>();
+            unionDeclarations = new ArrayList<>();
+        }
+        
+        public List<ConfigurationDeclaration> getOverride(){
+        	return overrideDeclarations;
+        }
+        
+        public List<ConfigurationDeclaration> getUnion(){
+        	return unionDeclarations;
+        }
+        
+        /**
+         * Initializes this object from the specified definition configuration.
+         *
+         * @param config the definition configuration
+         * @throws ConfigurationException if an error occurs
+         */
+        public void init(final HierarchicalConfiguration<?> config) throws ConfigurationException
+        {        	
+            overrideDeclarations.addAll(createDeclarations(fetchTopLevelOverrideConfigs(config)));
+            overrideDeclarations.addAll(createDeclarations(config.childConfigurationsAt(KEY_OVERRIDE)));
+            unionDeclarations.addAll(createDeclarations(config.childConfigurationsAt(KEY_UNION)));
+        }
+        
         /**
          * Finds the override configurations that are defined as top level
          * elements in the configuration definition file. This method fetches

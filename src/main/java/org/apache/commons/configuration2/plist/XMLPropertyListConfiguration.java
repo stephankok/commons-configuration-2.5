@@ -338,9 +338,9 @@ public class XMLPropertyListConfiguration extends BaseHierarchicalConfiguration
 
         if (value instanceof Date)
         {
-            synchronized (PListNodeBuilder.FORMAT)
+            synchronized (PListNode.FORMAT)
             {
-                out.println(padding + "<date>" + PListNodeBuilder.FORMAT.format((Date) value) + "</date>");
+                out.println(padding + "<date>" + PListNode.FORMAT.format((Date) value) + "</date>");
             }
         }
         else if (value instanceof Calendar)
@@ -647,14 +647,10 @@ public class XMLPropertyListConfiguration extends BaseHierarchicalConfiguration
             buffer.append(ch, start, length);
         }
     }
-
-    /**
-     * A specialized builder class with addXXX methods to parse the typed data passed by the SAX handler.
-     * It is used for creating the nodes of the configuration.
-     */
-    private static class PListNodeBuilder
-    {
-        /**
+    
+    private static class PListNode
+    {    
+    	/**
          * The MacOS FORMAT of dates in plist files. Note: Because
          * {@code SimpleDateFormat} is not thread-safe, each access has to be
          * synchronized.
@@ -672,16 +668,14 @@ public class XMLPropertyListConfiguration extends BaseHierarchicalConfiguration
          */
         private static final DateFormat GNUSTEP_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss Z");
 
-        /** A collection with child builders of this builder. */
-        private final Collection<PListNodeBuilder> childBuilders =
-                new LinkedList<>();
-
-        /** The name of the represented node. */
-        private String name;
-
-        /** The current value of the represented node. */
+        
+    	/** The current value of the represented node. */
         private Object value;
 
+        protected Object getValue() {
+        	return value;
+        }
+        
         /**
          * Update the value of the node. If the existing value is null, it's
          * replaced with the new value. If the existing value is a list, the
@@ -765,7 +759,21 @@ public class XMLPropertyListConfiguration extends BaseHierarchicalConfiguration
                 throw new AssertionError(e);
             }
         }
+    }
 
+    /**
+     * A specialized builder class with addXXX methods to parse the typed data passed by the SAX handler.
+     * It is used for creating the nodes of the configuration.
+     */
+    private static class PListNodeBuilder extends PListNode
+    {
+        /** A collection with child builders of this builder. */
+        private final Collection<PListNodeBuilder> childBuilders =
+                new LinkedList<>();
+
+        /** The name of the represented node. */
+        private String name;        
+        
         /**
          * Parse the specified string as an Interger and add it to the values of the node.
          *
@@ -773,7 +781,8 @@ public class XMLPropertyListConfiguration extends BaseHierarchicalConfiguration
          */
         public void addIntegerValue(final String value)
         {
-            addValue(new BigInteger(value));
+        	addValue(new BigInteger(value));
+        	
         }
 
         /**
@@ -783,7 +792,7 @@ public class XMLPropertyListConfiguration extends BaseHierarchicalConfiguration
          */
         public void addRealValue(final String value)
         {
-            addValue(new BigDecimal(value));
+        	addValue(new BigDecimal(value));
         }
 
         /**
@@ -856,7 +865,7 @@ public class XMLPropertyListConfiguration extends BaseHierarchicalConfiguration
          */
         protected Object getNodeValue()
         {
-            return value;
+            return getValue();
         }
     }
 

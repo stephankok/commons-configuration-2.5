@@ -1,33 +1,31 @@
 package org.apache.commons.configuration2;
 
-
-import org.apache.commons.lang3.StringUtils;
 import java.io.IOException;
 import org.apache.commons.configuration2.PropertiesConfiguration.PropertiesWriter;
 
 public class PropertiesWriterSeperator {
 	
-    /** Constant for the platform specific line separator.*/
+    private PropertiesWriterSeperatorProduct propertiesWriterSeperatorProduct = new PropertiesWriterSeperatorProduct();
+
+	/** Constant for the platform specific line separator.*/
     private static final String LINE_SEPARATOR = System.getProperty("line.separator");
     
-	private String currentSeparator;
-	private String globalSeparator;
 	private String lineSeparator;
 
 	public String getCurrentSeparator() {
-		return currentSeparator;
+		return propertiesWriterSeperatorProduct.getCurrentSeparator();
 	}
 
 	public void setCurrentSeparator(String currentSeparator) {
-		this.currentSeparator = currentSeparator;
+		propertiesWriterSeperatorProduct.setCurrentSeparator(currentSeparator);
 	}
 
 	public String getGlobalSeparator() {
-		return globalSeparator;
+		return propertiesWriterSeperatorProduct.getGlobalSeparator();
 	}
 
 	public void setGlobalSeparator(String globalSeparator) {
-		this.globalSeparator = globalSeparator;
+		propertiesWriterSeperatorProduct.setGlobalSeparator(globalSeparator);
 	}
 
 	public void setLineSeparator(String lineSeparator) {
@@ -42,7 +40,7 @@ public class PropertiesWriterSeperator {
 	* @since  1.7
 	*/
 	public String fetchSeparator(final String key, final Object value) {
-		return (globalSeparator != null) ? globalSeparator : StringUtils.defaultString(currentSeparator);
+		return propertiesWriterSeperatorProduct.fetchSeparator(key, value);
 	}
 
 	/**
