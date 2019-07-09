@@ -119,7 +119,9 @@ import org.apache.commons.logging.LogFactory;
  */
 public class FileHandler
 {
-    private FileHandlerListeners fileHandlerListeners = new FileHandlerListeners();
+    private FileHandlerReference fileHandlerReference;
+
+	private FileHandlerListeners fileHandlerListeners = new FileHandlerListeners();
 
 	/** Constant for the URI scheme for files. */
     private static final String FILE_SCHEME = "file:";
@@ -160,9 +162,6 @@ public class FileHandler
 
     /** The file-based object managed by this handler. */
     private final FileBased content;
-
-    /** A reference to the current {@code FileLocator} object. */
-    private final AtomicReference<FileLocator> fileLocator;
 
     /**
      * Creates a new instance of {@code FileHandler} which is not associated
@@ -213,8 +212,8 @@ public class FileHandler
      */
     private FileHandler(final FileBased obj, final FileLocator locator)
     {
-        content = obj;
-        fileLocator = new AtomicReference<>(locator);
+        this.fileHandlerReference = new FileHandlerReference(locator);
+		content = obj;
     }
 
     /**
@@ -272,18 +271,7 @@ public class FileHandler
      */
     public String getFileName()
     {
-        final FileLocator locator = getFileLocator();
-        if (locator.getFileName() != null)
-        {
-            return locator.getFileName();
-        }
-
-        if (locator.getSourceURL() != null)
-        {
-            return FileLocatorUtils.getFileName(locator.getSourceURL());
-        }
-
-        return null;
+        return fileHandlerReference.getFileName();
     }
 
     /**
@@ -318,18 +306,7 @@ public class FileHandler
      */
     public String getBasePath()
     {
-        final FileLocator locator = getFileLocator();
-        if (locator.getBasePath() != null)
-        {
-            return locator.getBasePath();
-        }
-
-        if (locator.getSourceURL() != null)
-        {
-            return FileLocatorUtils.getBasePath(locator.getSourceURL());
-        }
-
-        return null;
+        return fileHandlerReference.getBasePath();
     }
 
     /**
@@ -373,7 +350,7 @@ public class FileHandler
      */
     public File getFile()
     {
-        return createFile(getFileLocator());
+        return fileHandlerReference.createFile();
     }
 
     /**
@@ -411,10 +388,7 @@ public class FileHandler
      */
     public String getPath()
     {
-        final FileLocator locator = getFileLocator();
-        final File file = createFile(locator);
-        return FileLocatorUtils.obtainFileSystem(locator).getPath(file,
-                locator.getSourceURL(), locator.getBasePath(), locator.getFileName());
+        return fileHandlerReference.getPath();
     }
 
     /**
@@ -442,9 +416,7 @@ public class FileHandler
      */
     public URL getURL()
     {
-        final FileLocator locator = getFileLocator();
-        return (locator.getSourceURL() != null) ? locator.getSourceURL()
-                : FileLocatorUtils.locate(locator);
+        return fileHandlerReference.getURL();
     }
 
     /**
@@ -482,7 +454,7 @@ public class FileHandler
      */
     public FileLocator getFileLocator()
     {
-        return fileLocator.get();
+        return fileHandlerReference.getFileLocator();
     }
 
     /**
@@ -501,7 +473,7 @@ public class FileHandler
             throw new IllegalArgumentException("FileLocator must not be null!");
         }
 
-        fileLocator.set(locator);
+        fileHandlerReference.setFileLocator(locator);
         fileHandlerListeners.fireLocationChangedEvent(this);
     }
 
@@ -512,7 +484,7 @@ public class FileHandler
      */
     public boolean isLocationDefined()
     {
-        return FileLocatorUtils.isLocationDefined(getFileLocator());
+        return fileHandlerReference.isLocationDefined();
     }
 
     /**
@@ -540,7 +512,7 @@ public class FileHandler
      */
     public String getEncoding()
     {
-        return getFileLocator().getEncoding();
+        return fileHandlerReference.getEncoding();
     }
 
     /**
@@ -572,7 +544,7 @@ public class FileHandler
      */
     public FileSystem getFileSystem()
     {
-        return FileLocatorUtils.obtainFileSystem(getFileLocator());
+        return fileHandlerReference.getFileSystem();
     }
 
     /**
@@ -614,7 +586,7 @@ public class FileHandler
      */
     public FileLocationStrategy getLocationStrategy()
     {
-        return FileLocatorUtils.obtainLocationStrategy(getFileLocator());
+        return fileHandlerReference.getLocationStrategy();
     }
 
     /**
@@ -660,29 +632,7 @@ public class FileHandler
      */
     public boolean locate()
     {
-        boolean result;
-        boolean done;
-
-        do
-        {
-            final FileLocator locator = getFileLocator();
-            FileLocator fullLocator =
-                    FileLocatorUtils.fullyInitializedLocator(locator);
-            if (fullLocator == null)
-            {
-                result = false;
-                fullLocator = locator;
-            }
-            else
-            {
-                result =
-                        fullLocator != locator
-                                || FileLocatorUtils.isFullyInitialized(locator);
-            }
-            done = fileLocator.compareAndSet(locator, fullLocator);
-        } while (!done);
-
-        return result;
+        return fileHandlerReference.locate();
     }
 
     /**
@@ -892,7 +842,7 @@ public class FileHandler
      */
     private FileLocatorBuilder prepareNullLocatorBuilder()
     {
-        return FileLocatorUtils.fileLocator(getFileLocator()).sourceURL(null)
+        return FileLocatorUtils.fileLocator(fileHandlerReference.getFileLocator()).sourceURL(null)
                 .basePath(null).fileName(null);
     }
 
@@ -1377,7 +1327,7 @@ public class FileHandler
             throws ConfigurationException
     {
         checkContent();
-        return getFileLocator();
+        return fileHandlerReference.getFileLocator();
     }
 
     /**
@@ -1417,31 +1367,6 @@ public class FileHandler
         catch (final IOException e)
         {
             LogFactory.getLog(FileHandler.class).warn("Exception when closing " + cl, e);
-        }
-    }
-
-    /**
-     * Creates a {@code File} object from the content of the given
-     * {@code FileLocator} object. If the locator is not defined, result is
-     * <b>null</b>.
-     *
-     * @param loc the {@code FileLocator}
-     * @return a {@code File} object pointing to the associated file
-     */
-    private static File createFile(final FileLocator loc)
-    {
-        if (loc.getFileName() == null && loc.getSourceURL() == null)
-        {
-            return null;
-        }
-        else if (loc.getSourceURL() != null)
-        {
-            return FileLocatorUtils.fileFromURL(loc.getSourceURL());
-        }
-        else
-        {
-            return FileLocatorUtils.getFile(loc.getBasePath(),
-                    loc.getFileName());
         }
     }
 
@@ -1491,11 +1416,11 @@ public class FileHandler
             boolean done;
             do
             {
-                final FileLocator oldLocator = fileLocator.get();
+                final FileLocator oldLocator = fileHandlerReference.getFileLocator();
                 final FileLocatorBuilder builder =
                         FileLocatorUtils.fileLocator(oldLocator);
                 updateBuilder(builder);
-                done = fileLocator.compareAndSet(oldLocator, builder.create());
+                done = fileHandlerReference.compareAndSet(oldLocator, builder.create());
             } while (!done);
             
             fileHandlerListeners.fireLocationChangedEvent(handler);

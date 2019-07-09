@@ -237,8 +237,8 @@ import org.xml.sax.EntityResolver;
  *         Configuration team</a>
  */
 public class CombinedConfigurationBuilder extends BasicConfigurationBuilder<CombinedConfiguration>
-{
-    /**
+{    
+	/**
      * Constant for the name of the additional configuration. If the
      * configuration definition file contains an {@code additional}
      * section, a special union configuration is created and added under this
@@ -482,12 +482,13 @@ public class CombinedConfigurationBuilder extends BasicConfigurationBuilder<Comb
 
     /** The object with data about configuration sources. */
     private ConfigurationSourceData sourceData;
+    
+    /** The current XML parameters object. */
+    private CurrentXMLParametersBuilder currentXMLParametersBuilder 
+    		= new CurrentXMLParametersBuilder();
 
     /** Stores the current parameters object. */
     private CombinedBuilderParametersImpl currentParameters;
-
-    /** The current XML parameters object. */
-    private XMLBuilderParametersImpl currentXMLParameters;
 
     /** The configuration that is currently constructed. */
     private CombinedConfiguration currentConfiguration;
@@ -632,7 +633,7 @@ public class CombinedConfigurationBuilder extends BasicConfigurationBuilder<Comb
         definitionBuilder = null;
         definitionConfiguration = null;
         currentParameters = null;
-        currentXMLParameters = null;
+        currentXMLParametersBuilder.setCurrentXMLParameters(null);
 
         if (sourceData != null)
         {
@@ -787,11 +788,11 @@ public class CombinedConfigurationBuilder extends BasicConfigurationBuilder<Comb
         setUpCurrentParameters();
         initNodeCombinerListNodes(result, config, KEY_OVERRIDE_LIST);
         registerConfiguredProviders(config);
-        setUpCurrentXMLParameters();
-        currentXMLParameters.setFileSystem(initFileSystem(config));
-        initSystemProperties(config, getBasePath());
+        currentXMLParametersBuilder.setUpCurrentXMLParameters(this.currentParameters, this);
+        currentXMLParametersBuilder.getCurrentXMLParameters().setFileSystem(initFileSystem(config));
+        initSystemProperties(config, currentXMLParametersBuilder.getBasePath());
         registerConfiguredLookups(config, result);
-        configureEntityResolver(config, currentXMLParameters);
+        configureEntityResolver(config, currentXMLParametersBuilder.getCurrentXMLParameters());
         setUpParentInterpolator(currentConfiguration, config);
 
         final ConfigurationSourceData data = getSourceData();
@@ -1009,7 +1010,7 @@ public class CombinedConfigurationBuilder extends BasicConfigurationBuilder<Comb
         }
         if (params instanceof FileBasedBuilderProperties<?>)
         {
-            initChildFileBasedParameters((FileBasedBuilderProperties<?>) params);
+            currentXMLParametersBuilder.initChildFileBasedParameters((FileBasedBuilderProperties<?>) params);
         }
         if (params instanceof CombinedBuilderParametersImpl)
         {
@@ -1069,20 +1070,6 @@ public class CombinedConfigurationBuilder extends BasicConfigurationBuilder<Comb
     }
 
     /**
-     * Sets up an XML parameters object which is used to store properties
-     * related to XML and file-based configurations during creation of the
-     * result configuration. The properties stored in this object can be
-     * inherited to child configurations.
-     *
-     * @throws ConfigurationException if an error occurs
-     */
-    private void setUpCurrentXMLParameters() throws ConfigurationException
-    {
-        currentXMLParameters = new XMLBuilderParametersImpl();
-        initDefaultBasePath();
-    }
-
-    /**
      * Sets up a parent {@code ConfigurationInterpolator} object. This object
      * has a default {@link Lookup} querying the resulting combined
      * configuration. Thus interpolation works globally across all configuration
@@ -1101,39 +1088,6 @@ public class CombinedConfigurationBuilder extends BasicConfigurationBuilder<Comb
         if (defInterpolator != null)
         {
             defInterpolator.setParentInterpolator(parentInterpolator);
-        }
-    }
-
-    /**
-     * Initializes the default base path for all file-based child configuration
-     * sources. The base path can be explicitly defined in the parameters of
-     * this builder. Otherwise, if the definition builder is a file-based
-     * builder, it is obtained from there.
-     *
-     * @throws ConfigurationException if an error occurs
-     */
-    private void initDefaultBasePath() throws ConfigurationException
-    {
-        assert currentParameters != null : "Current parameters undefined!";
-        if (currentParameters.getBasePath() != null)
-        {
-            currentXMLParameters.setBasePath(currentParameters.getBasePath());
-        }
-        else
-        {
-            final ConfigurationBuilder<? extends HierarchicalConfiguration<?>> defBuilder =
-                    getDefinitionBuilder();
-            if (defBuilder instanceof FileBasedConfigurationBuilder)
-            {
-                @SuppressWarnings("rawtypes")
-                final
-                FileBasedConfigurationBuilder fileBuilder =
-                        (FileBasedConfigurationBuilder) defBuilder;
-                final URL url = fileBuilder.getFileHandler().getURL();
-                currentXMLParameters.setBasePath((url != null) ? url
-                        .toExternalForm() : fileBuilder.getFileHandler()
-                        .getBasePath());
-            }
         }
     }
 
@@ -1175,21 +1129,6 @@ public class CombinedConfigurationBuilder extends BasicConfigurationBuilder<Comb
     }
 
     /**
-     * Initializes a parameters object for a file-based configuration with
-     * properties already set for this parent builder. This method handles
-     * properties like a default file system or a base path.
-     *
-     * @param params the parameters object
-     */
-    private void initChildFileBasedParameters(
-            final FileBasedBuilderProperties<?> params)
-    {
-        params.setBasePath(getBasePath());
-        params.setFileSystem(currentXMLParameters.getFileHandler()
-                .getFileSystem());
-    }
-
-    /**
      * Initializes a parameters object for an XML configuration with properties
      * already set for this parent builder.
      *
@@ -1197,7 +1136,7 @@ public class CombinedConfigurationBuilder extends BasicConfigurationBuilder<Comb
      */
     private void initChildXMLParameters(final XMLBuilderProperties<?> params)
     {
-        params.setEntityResolver(currentXMLParameters.getEntityResolver());
+        params.setEntityResolver(currentXMLParametersBuilder.getCurrentXMLParameters().getEntityResolver());
     }
 
     /**
@@ -1212,7 +1151,7 @@ public class CombinedConfigurationBuilder extends BasicConfigurationBuilder<Comb
             final CombinedBuilderParametersImpl params)
     {
         params.registerMissingProviders(currentParameters);
-        params.setBasePath(getBasePath());
+        params.setBasePath(currentXMLParametersBuilder.getBasePath());
     }
 
     /**
@@ -1232,7 +1171,7 @@ public class CombinedConfigurationBuilder extends BasicConfigurationBuilder<Comb
             if (currentParameters == null)
             {
                 setUpCurrentParameters();
-                setUpCurrentXMLParameters();
+                currentXMLParametersBuilder.setUpCurrentXMLParameters(this.currentParameters, this);
             }
             sourceData = createSourceData();
         }
@@ -1252,17 +1191,6 @@ public class CombinedConfigurationBuilder extends BasicConfigurationBuilder<Comb
         final ConfigurationSourceData result = new ConfigurationSourceData();
         result.initFromDefinitionConfiguration(getDefinitionConfiguration());
         return result;
-    }
-
-    /**
-     * Returns the current base path of this configuration builder. This is used
-     * for instance by all file-based child configurations.
-     *
-     * @return the base path
-     */
-    private String getBasePath()
-    {
-        return currentXMLParameters.getFileHandler().getBasePath();
     }
 
     /**

@@ -135,14 +135,7 @@ public class CatalogResolver implements EntityResolver
      */
     public void setDebug(final boolean debug)
     {
-        if (debug)
-        {
-            manager.setVerbosity(DEBUG_ALL);
-        }
-        else
-        {
-            manager.setVerbosity(DEBUG_NONE);
-        }
+        manager.setDebug(debug);
     }
 
     /**
@@ -336,6 +329,22 @@ public class CatalogResolver implements EntityResolver
         public ConfigurationInterpolator getInterpolator()
         {
             return interpolator;
+        }
+        
+        /**
+         * Enables debug logging of xml-commons Catalog processing.
+         * @param debug True if debugging should be enabled, false otherwise.
+         */
+        public void setDebug(final boolean debug)
+        {
+            if (debug)
+            {
+                setVerbosity(DEBUG_ALL);
+            }
+            else
+            {
+                setVerbosity(DEBUG_NONE);
+            }
         }
 
 

@@ -995,74 +995,24 @@ public class CombinedConfiguration extends BaseHierarchicalConfiguration impleme
     {
         return configurations.size();
     }
-
-    /**
-     * An internal helper class for storing information about contained
-     * configurations.
-     */
-    private class ConfigData
+    
+    /** Stores a reference to the configuration. */
+    private class ConfigNode
     {
-        /** Stores a reference to the configuration. */
+    	/** Stores a reference to the configuration. */
         private final Configuration configuration;
-
-        /** Stores the name under which the configuration is stored. */
-        private final String name;
-
-        /** Stores the at information as path of nodes. */
-        private final Collection<String> atPath;
-
-        /** Stores the at string.*/
-        private final String at;
-
+        
         /** Stores the root node for this child configuration.*/
-        private ImmutableNode rootNode;
-
-        /**
-         * Creates a new instance of {@code ConfigData} and initializes
-         * it.
-         *
-         * @param config the configuration
-         * @param n the name
-         * @param at the at position
-         */
-        public ConfigData(final Configuration config, final String n, final String at)
-        {
-            configuration = config;
-            name = n;
-            atPath = parseAt(at);
-            this.at = at;
+        private ImmutableNode rootNode;               
+        
+        public ConfigNode(Configuration configuration) {
+        	this.configuration = configuration;        	
         }
-
-        /**
-         * Returns the stored configuration.
-         *
-         * @return the configuration
-         */
-        public Configuration getConfiguration()
-        {
-            return configuration;
+        
+        public Configuration getConfiguration() {
+        	return configuration;
         }
-
-        /**
-         * Returns the configuration's name.
-         *
-         * @return the name
-         */
-        public String getName()
-        {
-            return name;
-        }
-
-        /**
-         * Returns the at position of this configuration.
-         *
-         * @return the at position
-         */
-        public String getAt()
-        {
-            return at;
-        }
-
+        
         /**
          * Returns the root node for this child configuration.
          *
@@ -1073,21 +1023,49 @@ public class CombinedConfiguration extends BaseHierarchicalConfiguration impleme
         {
             return rootNode;
         }
-
+        
         /**
-         * Returns the transformed root node of the stored configuration. The
-         * term &quot;transformed&quot; means that an eventually defined at path
-         * has been applied.
+         * Obtains the root node of the wrapped configuration. If necessary, a
+         * hierarchical representation of the configuration has to be created
+         * first.
          *
-         * @return the transformed root node
+         * @return the root node of the associated configuration
          */
-        public ImmutableNode getTransformedRoot()
+        private ImmutableNode getRootNodeOfConfiguration()
         {
-            final ImmutableNode configRoot = getRootNodeOfConfiguration();
-            return (atPath == null) ? configRoot : prependAtPath(configRoot);
-        }
-
-        /**
+            getConfiguration().lock(LockMode.READ);
+            try
+            {
+                final ImmutableNode root =
+                        ConfigurationUtils
+                                .convertToHierarchical(getConfiguration(),
+                                        conversionExpressionEngine).getNodeModel()
+                                .getInMemoryRepresentation();
+                rootNode = root;
+                return root;
+            }
+            finally
+            {
+                getConfiguration().unlock(LockMode.READ);
+            }
+        }    
+    }
+    
+    /** Stores the at information as path of nodes. */
+    private class ConfigPath
+    {
+    	/** Stores the at information as path of nodes. */
+        private final Collection<String> atPath;
+        
+    	public ConfigPath(String at) {
+    		this.atPath = parseAt(at);
+    	}
+    	
+    	public ImmutableNode getTransformedRoot(ImmutableNode configRoot){
+    		return (atPath == null) ? configRoot : prependAtPath(configRoot);
+    	}
+    	
+    	 /**
          * Prepends the at path to the given node.
          *
          * @param node the root node of the represented configuration
@@ -1132,33 +1110,7 @@ public class CombinedConfiguration extends BaseHierarchicalConfiguration impleme
                 builder.addAttributes(orgRoot.getAttributes());
                 builder.value(orgRoot.getValue());
             }
-        }
-
-        /**
-         * Obtains the root node of the wrapped configuration. If necessary, a
-         * hierarchical representation of the configuration has to be created
-         * first.
-         *
-         * @return the root node of the associated configuration
-         */
-        private ImmutableNode getRootNodeOfConfiguration()
-        {
-            getConfiguration().lock(LockMode.READ);
-            try
-            {
-                final ImmutableNode root =
-                        ConfigurationUtils
-                                .convertToHierarchical(getConfiguration(),
-                                        conversionExpressionEngine).getNodeModel()
-                                .getInMemoryRepresentation();
-                rootNode = root;
-                return root;
-            }
-            finally
-            {
-                getConfiguration().unlock(LockMode.READ);
-            }
-        }
+        }        
 
         /**
          * Splits the at path into its components.
@@ -1182,5 +1134,96 @@ public class CombinedConfiguration extends BaseHierarchicalConfiguration impleme
             }
             return result;
         }
+    }
+    
+    /**
+     * An internal helper class for storing information about contained
+     * configurations.
+     */
+    private class ConfigData
+    {       
+        /** Stores the name under which the configuration is stored. */
+        private final String name;      
+
+        /** Stores the at string.*/
+        private final String at;
+        
+        /** Stores a reference to the configuration. */
+        private final ConfigNode configNode;
+        
+        /** Stores the at information as path of nodes. */
+        private final ConfigPath configPath;
+
+        /**
+         * Creates a new instance of {@code ConfigData} and initializes
+         * it.
+         *
+         * @param config the configuration
+         * @param n the name
+         * @param at the at position
+         */
+        public ConfigData(final Configuration config, final String n, final String at)
+        {
+        	configNode = new ConfigNode(config);
+        	configPath = new ConfigPath(at);
+            name = n;            
+            this.at = at;
+        }
+
+        /**
+         * Returns the stored configuration.
+         *
+         * @return the configuration
+         */
+        public Configuration getConfiguration()
+        {
+            return configNode.getConfiguration();
+        }
+
+        /**
+         * Returns the configuration's name.
+         *
+         * @return the name
+         */
+        public String getName()
+        {
+            return name;
+        }
+
+        /**
+         * Returns the at position of this configuration.
+         *
+         * @return the at position
+         */
+        public String getAt()
+        {
+            return at;
+        }
+
+        /**
+         * Returns the root node for this child configuration.
+         *
+         * @return the root node of this child configuration
+         * @since 1.5
+         */
+        public ImmutableNode getRootNode()
+        {
+            return configNode.getRootNode();
+        }
+        
+
+        /**
+         * Returns the transformed root node of the stored configuration. The
+         * term &quot;transformed&quot; means that an eventually defined at path
+         * has been applied.
+         *
+         * @return the transformed root node
+         */
+        public ImmutableNode getTransformedRoot()
+        {
+        	final ImmutableNode configRoot = configNode.getRootNodeOfConfiguration();
+        	return configPath.getTransformedRoot(configRoot);
+        }
+       
     }
 }

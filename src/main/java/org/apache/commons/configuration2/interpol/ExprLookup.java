@@ -65,17 +65,17 @@ import org.apache.commons.text.lookup.StringLookup;
  */
 public class ExprLookup implements Lookup
 {
-    /** Prefix to identify a Java Class object */
-    private static final String CLASS = "Class:";
-
     /** The default prefix for subordinate lookup expressions */
     private static final String DEFAULT_PREFIX = "$[";
 
     /** The default suffix for subordinate lookup expressions */
     private static final String DEFAULT_SUFFIX = "]";
+    
+	/** Builds the StringSubstitutor for performing replace operations. */
+    private ExprLookupConfig exprLookupConfig = new ExprLookupConfig();
 
-    /** The ConfigurationInterpolator used by this object. */
-    private ConfigurationInterpolator interpolator;
+	/** Prefix to identify a Java Class object */
+    private static final String CLASS = "Class:";
 
     /** The StringSubstitutor for performing replace operations. */
     private StringSubstitutor substitutor;
@@ -88,12 +88,6 @@ public class ExprLookup implements Lookup
 
     /** The variables maintained by this object. */
     private Variables variables;
-
-    /** The String to use to start subordinate lookup expressions */
-    private String prefixMatcher = DEFAULT_PREFIX;
-
-    /** The String to use to terminate subordinate lookup expressions */
-    private String suffixMatcher = DEFAULT_SUFFIX;
 
     /**
      * The default constructor. Will get used when the Lookup is constructed via
@@ -121,8 +115,8 @@ public class ExprLookup implements Lookup
     public ExprLookup(final Variables list, final String prefix, final String suffix)
     {
         this(list);
-        setVariablePrefixMatcher(prefix);
-        setVariableSuffixMatcher(suffix);
+        exprLookupConfig.setPrefixMatcher(prefix);
+        exprLookupConfig.setSuffixMatcher(suffix);
     }
 
     /**
@@ -132,7 +126,7 @@ public class ExprLookup implements Lookup
      */
     public void setVariablePrefixMatcher(final String prefix)
     {
-        prefixMatcher = prefix;
+        exprLookupConfig.setPrefixMatcher(prefix);
     }
 
     /**
@@ -142,7 +136,7 @@ public class ExprLookup implements Lookup
      */
     public void setVariableSuffixMatcher(final String suffix)
     {
-        suffixMatcher = suffix;
+        exprLookupConfig.setSuffixMatcher(suffix);
     }
 
     /**
@@ -197,7 +191,7 @@ public class ExprLookup implements Lookup
      */
     public ConfigurationInterpolator getInterpolator()
     {
-        return interpolator;
+        return exprLookupConfig.getInterpolator();
     }
 
     /**
@@ -209,8 +203,7 @@ public class ExprLookup implements Lookup
      */
     public void setInterpolator(final ConfigurationInterpolator interpolator)
     {
-        this.interpolator = interpolator;
-        installSubstitutor(interpolator);
+        exprLookupConfig.installSubstitutor(interpolator);
     }
 
     /**
@@ -243,35 +236,6 @@ public class ExprLookup implements Lookup
         }
 
         return result;
-    }
-
-    /**
-     * Creates a {@code StringSubstitutor} object which uses the passed in
-     * {@code ConfigurationInterpolator} as lookup object.
-     *
-     * @param ip the {@code ConfigurationInterpolator} to be used
-     */
-    private void installSubstitutor(final ConfigurationInterpolator ip)
-    {
-        if (ip == null)
-        {
-            substitutor = null;
-        }
-        else
-        {
-            final StringLookup variableResolver = new StringLookup()
-            {
-                @Override
-                public String lookup(final String key)
-                {
-                    final Object value = ip.resolve(key);
-                    return value != null ? value.toString() : null;
-                }
-            };
-            substitutor =
-                    new StringSubstitutor(variableResolver, prefixMatcher,
-                            suffixMatcher, StringSubstitutor.DEFAULT_ESCAPE);
-        }
     }
 
     /**
@@ -407,4 +371,58 @@ public class ExprLookup implements Lookup
 
         }
     }
+
+	public void setSubstitutor(StringSubstitutor substitutor) {
+		this.substitutor = substitutor;
+	}
+	
+	/** Builds the StringSubstitutor for performing replace operations. */
+	private class ExprLookupConfig {		
+		private String prefixMatcher = DEFAULT_PREFIX;
+		private String suffixMatcher = DEFAULT_SUFFIX;
+		
+	    /** The ConfigurationInterpolator used by this object. */
+	    private ConfigurationInterpolator interpolator;
+		
+		
+		public void setPrefixMatcher(String prefixMatcher) {
+			this.prefixMatcher = prefixMatcher;
+		}
+
+		public void setSuffixMatcher(String suffixMatcher) {
+			this.suffixMatcher = suffixMatcher;
+		}
+		
+		/**
+	     * Returns the {@code ConfigurationInterpolator} used by this object.
+	     *
+	     * @return the {@code ConfigurationInterpolator}
+	     * @since 2.0
+	     */
+	    public ConfigurationInterpolator getInterpolator()
+	    {
+	        return interpolator;
+	    }
+
+		/**
+		* Creates a  {@code  StringSubstitutor}  object which uses the passed in {@code  ConfigurationInterpolator}  as lookup object.
+		* @param ip  the  {@code  ConfigurationInterpolator}  to be used
+		*/
+		public void installSubstitutor(final ConfigurationInterpolator ip) {
+		    this.interpolator = ip;
+			if (ip == null) {
+				setSubstitutor(null);
+			} else {
+				final StringLookup variableResolver = new StringLookup() {
+					@Override
+					public String lookup(final String key) {
+						final Object value = ip.resolve(key);
+						return value != null ? value.toString() : null;
+					}
+				};
+				setSubstitutor(new StringSubstitutor(variableResolver, prefixMatcher, suffixMatcher,
+						StringSubstitutor.DEFAULT_ESCAPE));
+			}
+		}
+	}
 }
