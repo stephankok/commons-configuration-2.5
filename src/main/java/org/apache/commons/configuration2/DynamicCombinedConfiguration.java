@@ -313,36 +313,7 @@ public class DynamicCombinedConfiguration extends CombinedConfiguration
         }
         return conf;
     }
-
-    /**
-     * Removes the specified configuration from this combined configuration.
-     *
-     * @param config the configuration to be removed
-     * @return a flag whether this configuration was found and could be removed
-     */
-    @Override
-    public boolean removeConfiguration(final Configuration config)
-    {
-        beginWrite(false);
-        try
-        {
-            for (int index = 0; index < getNumberOfConfigurations(); index++)
-            {
-                if (configurations.get(index).getConfiguration() == config)
-                {
-                    removeConfigurationAt(index);
-                    return true;
-                }
-            }
-
-            return false;
-        }
-        finally
-        {
-            endWrite();
-        }
-    }
-
+    
     /**
      * Removes the configuration at the specified index.
      *
@@ -361,6 +332,27 @@ public class DynamicCombinedConfiguration extends CombinedConfiguration
                 namedConfigurations.remove(cd.getName());
             }
             return cd.getConfiguration();
+        }
+        finally
+        {
+            endWrite();
+        }
+    }
+
+
+    /**
+     * Removes the specified configuration from this combined configuration.
+     *
+     * @param config the configuration to be removed
+     * @return a flag whether this configuration was found and could be removed
+     */
+    @Override
+    public boolean removeConfiguration(final Configuration config)
+    {
+        beginWrite(false);
+        try
+        {
+        	return removeConfigurationLogic(config, configurations);
         }
         finally
         {
@@ -981,7 +973,7 @@ public class DynamicCombinedConfiguration extends CombinedConfiguration
     /**
      * Internal class that identifies each Configuration.
      */
-    static class ConfigData
+    static class ConfigData implements ConfigDataInterface
     {
         /** Stores a reference to the configuration. */
         private final Configuration configuration;

@@ -543,10 +543,16 @@ public class CombinedConfiguration extends BaseHierarchicalConfiguration impleme
      */
     public boolean removeConfiguration(final Configuration config)
     {
+        return removeConfigurationLogic(config, configurations);
+    }
+    
+    protected <T extends ConfigDataInterface> 
+    boolean removeConfigurationLogic(final Configuration config, List<T> configurations2)
+    {
         for (int index = 0; index < getNumberOfConfigurations(); index++)
         {
-            if (configurations.get(index).getConfiguration() == config)
-            {
+            if (configurations2.get(index).getConfiguration() == config)
+            {            	
                 removeConfigurationAt(index);
                 return true;
             }
@@ -1000,7 +1006,7 @@ public class CombinedConfiguration extends BaseHierarchicalConfiguration impleme
      * An internal helper class for storing information about contained
      * configurations.
      */
-    private class ConfigData
+    private class ConfigData implements ConfigDataInterface
     {
         /** Stores a reference to the configuration. */
         private final Configuration configuration;
