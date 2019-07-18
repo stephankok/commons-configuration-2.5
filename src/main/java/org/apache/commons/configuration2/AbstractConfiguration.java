@@ -46,6 +46,7 @@ import org.apache.commons.configuration2.io.ConfigurationLogger;
 import org.apache.commons.configuration2.sync.LockMode;
 import org.apache.commons.configuration2.sync.NoOpSynchronizer;
 import org.apache.commons.configuration2.sync.Synchronizer;
+import org.apache.commons.configuration2.tree.ImmutableNode;
 import org.apache.commons.lang3.ClassUtils;
 import org.apache.commons.lang3.ObjectUtils;
 
@@ -932,6 +933,37 @@ public abstract class AbstractConfiguration extends BaseEventSource implements C
         try
         {
             return getKeysInternal();
+        }
+        finally
+        {
+            endRead();
+        }
+    }
+    
+    /**
+     * 
+     */
+    @Override
+    public final Iterator<ImmutableNode> getImmutableNodes()
+    {
+        beginRead(false);
+        try
+        {
+        	final Iterator<String> it = getKeys();
+            ArrayList<ImmutableNode> nodes = new ArrayList<ImmutableNode>();
+
+            while (it.hasNext())
+            {
+                // create a node for each property
+                final String key = it.next();
+                final ImmutableNode node =
+                        new ImmutableNode.Builder().name(key)
+                                .value(getProperty(key)).create();
+                nodes.add(node);
+            }
+            
+            return nodes.iterator();
+
         }
         finally
         {

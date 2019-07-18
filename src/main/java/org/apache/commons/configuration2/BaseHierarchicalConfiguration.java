@@ -712,6 +712,29 @@ public class BaseHierarchicalConfiguration extends AbstractHierarchicalConfigura
     {
         return c.getNodeModel().getNodeHandler().getRootNode();
     }
+    
+    @Override
+    protected void setPropertyInternal(final String key, final Object value)
+    {
+        // special case for byte arrays, they must be stored as is in the configuration
+        if (value instanceof byte[])
+        {
+            setDetailEvents(false);
+            try
+            {
+                clearProperty(key);
+                addPropertyDirect(key, value);
+            }
+            finally
+            {
+                setDetailEvents(true);
+            }
+        }
+        else
+        {
+            super.setPropertyInternal(key, value);
+        }
+    }
 
     /**
      * A specialized visitor base class that can be used for storing the tree of

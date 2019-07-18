@@ -136,8 +136,7 @@ public class UnionCombiner extends NodeCombiner
         final List<ImmutableNode> children2 = new LinkedList<>(node2.getChildren());
         for (final ImmutableNode child1 : node1.getChildren())
         {
-            final ImmutableNode child2 = findCombineNode(node1, node2, child1
-            );
+            final ImmutableNode child2 = canCombine(node1, node2, child1);
             if (child2 != null)
             {
                 result.addChild(combine(child1, child2));
@@ -150,11 +149,7 @@ public class UnionCombiner extends NodeCombiner
         }
 
         // Add remaining children of node 2
-        for (final ImmutableNode c : children2)
-        {
-            result.addChild(c);
-        }
-
+    	result.addChildren(children2);
         return result.create();
     }
 
@@ -188,7 +183,7 @@ public class UnionCombiner extends NodeCombiner
      * @return the matching child node of the second source node or <b>null</b>
      * if there is none
      */
-    protected ImmutableNode findCombineNode(final ImmutableNode node1,
+    protected ImmutableNode canCombine(final ImmutableNode node1,
             final ImmutableNode node2, final ImmutableNode child)
     {
         if (child.getValue() == null && !isListNode(child)

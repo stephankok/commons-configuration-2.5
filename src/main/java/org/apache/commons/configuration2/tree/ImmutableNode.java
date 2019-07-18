@@ -187,22 +187,7 @@ public final class ImmutableNode
      */
     public ImmutableNode removeChild(final ImmutableNode child)
     {
-        // use same size of children in case the child does not exist
-        final Builder builder = new Builder(children.size(), attributes);
-        boolean foundChild = false;
-        for (final ImmutableNode c : children)
-        {
-            if (c == child)
-            {
-                foundChild = true;
-            }
-            else
-            {
-                builder.addChild(c);
-            }
-        }
-
-        return foundChild ? createWithBasicProperties(builder) : this;
+        return temp(child, null);
     }
 
     /**
@@ -214,11 +199,27 @@ public final class ImmutableNode
      * @param newChild the replacing child node (must not be <b>null</b>)
      * @return the new node with the child replaced
      * @throws IllegalArgumentException if the new child node is <b>null</b>
-     */
+     */   
     public ImmutableNode replaceChild(final ImmutableNode oldChild,
             final ImmutableNode newChild)
     {
         checkChildNode(newChild);
+        return temp(oldChild, newChild);
+    }
+    
+    /**
+	 * Returns a new {@code ImmutableNode} instance which is a copy of this
+     * object, but with the given child replaced by the new one. If the child to
+     * be replaced cannot be found, the same node instance is returned.If the
+     * newChild is null, the element will be removed.
+     * 
+     * @param oldChild
+     * @param newChild
+     * @return
+     */
+    private ImmutableNode temp(final ImmutableNode oldChild,
+            final ImmutableNode newChild)
+    {        
         final Builder builder = new Builder(children.size(), attributes);
         boolean foundChild = false;
         for (final ImmutableNode c : children)

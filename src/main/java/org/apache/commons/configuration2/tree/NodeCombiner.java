@@ -100,7 +100,7 @@ public abstract class NodeCombiner
     public boolean isListNode(final ImmutableNode node)
     {
         return listNodes.contains(node.getNodeName());
-    }
+    }   
 
     /**
      * Combines the hierarchies represented by the given root nodes. This method

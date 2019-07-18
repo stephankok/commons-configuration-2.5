@@ -73,12 +73,9 @@ public class MergeCombiner extends NodeCombiner
                 result.addChild(child1);
             }
         }
-
+        
         // Add remaining children of node 2
-        for (final ImmutableNode c : children2)
-        {
-            result.addChild(c);
-        }
+        result.addChildren(children2);
         return result.create();
     }
 

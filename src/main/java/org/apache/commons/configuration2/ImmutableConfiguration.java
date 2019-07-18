@@ -23,6 +23,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
 
+import org.apache.commons.configuration2.tree.ImmutableNode;
+
 /**
  * <p>The main interface for accessing configuration data in a read-only fashion.</p>
  * <p>
@@ -126,6 +128,18 @@ public interface ImmutableConfiguration
      * @return An Iterator.
      */
     Iterator<String> getKeys();
+    
+    /**
+     * Get the list of the ImmutableNodes contained in the configuration. The returned
+     * iterator can be used to obtain all defined keys. It does not allow
+     * removing elements from this configuration via its {@code remove()}
+     * method. Note that the keys of this configuration are returned in a form,
+     * so that they can be directly evaluated; escaping of special characters
+     * (if necessary) has already been performed.
+     *
+     * @return An Iterator.
+     */
+    Iterator<ImmutableNode> getImmutableNodes();
 
     /**
      * Get a list of properties associated with the given configuration key. This method

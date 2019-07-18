@@ -177,11 +177,7 @@ implements Cloneable
         {
             if (!configList.contains(config))
             {
-                if (asInMemory)
-                {
-                    replaceInMemoryConfiguration(config);
-                    inMemoryConfigIsChild = true;
-                }
+            	setConfigurations(config, asInMemory);
 
                 if (!inMemoryConfigIsChild)
                 {
@@ -197,12 +193,6 @@ implements Cloneable
                     // However, if the in-memory configuration is a regular child,
                     // only the order in which child configurations are added is relevant
                     configList.add(config);
-                }
-
-                if (config instanceof AbstractConfiguration)
-                {
-                    ((AbstractConfiguration) config)
-                            .setThrowExceptionOnMissing(isThrowExceptionOnMissing());
                 }
             }
         }
@@ -244,23 +234,28 @@ implements Cloneable
         {
             if (!configList.contains(config))
             {
-                if (asInMemory)
-                {
-                    replaceInMemoryConfiguration(config);
-                    inMemoryConfigIsChild = true;
-                }
+            	setConfigurations(config, asInMemory);
+                
                 configList.add(0, config);
-
-                if (config instanceof AbstractConfiguration)
-                {
-                    ((AbstractConfiguration) config)
-                            .setThrowExceptionOnMissing(isThrowExceptionOnMissing());
-                }
             }
         }
         finally
         {
             endWrite();
+        }
+    }
+    
+    private void setConfigurations(final Configuration config, boolean asInMemory) {
+    	if (asInMemory)
+        {
+            replaceInMemoryConfiguration(config);
+            inMemoryConfigIsChild = true;
+        }
+        
+        if (config instanceof AbstractConfiguration)
+        {
+        	((AbstractConfiguration) config)
+        	.setThrowExceptionOnMissing(isThrowExceptionOnMissing());
         }
     }
 
@@ -389,7 +384,7 @@ implements Cloneable
         }
 
         return keys.iterator();
-    }
+    }   
 
     @Override
     protected boolean isEmptyInternal()

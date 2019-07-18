@@ -171,29 +171,6 @@ public class XMLPropertyListConfiguration extends BaseHierarchicalConfiguration
     }
 
     @Override
-    protected void setPropertyInternal(final String key, final Object value)
-    {
-        // special case for byte arrays, they must be stored as is in the configuration
-        if (value instanceof byte[])
-        {
-            setDetailEvents(false);
-            try
-            {
-                clearProperty(key);
-                addPropertyDirect(key, value);
-            }
-            finally
-            {
-                setDetailEvents(true);
-            }
-        }
-        else
-        {
-            super.setPropertyInternal(key, value);
-        }
-    }
-
-    @Override
     protected void addPropertyInternal(final String key, final Object value)
     {
         if (value instanceof byte[] || value instanceof List)
@@ -301,22 +278,9 @@ public class XMLPropertyListConfiguration extends BaseHierarchicalConfiguration
 
         final List<ImmutableNode> children = node.getChildren();
         if (!children.isEmpty())
-        {
-            out.println(padding + "<dict>");
+        {        	
+        	printNodes(out, children.iterator(), padding, indentLevel);
 
-            final Iterator<ImmutableNode> it = children.iterator();
-            while (it.hasNext())
-            {
-                final ImmutableNode child = it.next();
-                printNode(out, indentLevel + 1, child);
-
-                if (it.hasNext())
-                {
-                    out.println();
-                }
-            }
-
-            out.println(padding + "</dict>");
         }
         else if (node.getValue() == null)
         {
@@ -327,6 +291,24 @@ public class XMLPropertyListConfiguration extends BaseHierarchicalConfiguration
             final Object value = node.getValue();
             printValue(out, indentLevel, value);
         }
+    }
+    
+    private void printNodes(final PrintWriter out, Iterator<ImmutableNode> it, 
+    		final String padding, final int indentLevel)
+    {
+        out.println(padding + "<dict>");
+        while (it.hasNext())
+        {
+            final ImmutableNode child = it.next();
+            printNode(out, indentLevel + 1, child);
+
+            if (it.hasNext())
+            {
+                out.println();
+            }
+        }
+
+        out.println(padding + "</dict>");
     }
 
     /**
@@ -391,27 +373,9 @@ public class XMLPropertyListConfiguration extends BaseHierarchicalConfiguration
         else if (value instanceof ImmutableConfiguration)
         {
             // display a flat Configuration as a dictionary
-            out.println(padding + "<dict>");
-
             final ImmutableConfiguration config = (ImmutableConfiguration) value;
-            final Iterator<String> it = config.getKeys();
-            while (it.hasNext())
-            {
-                // create a node for each property
-                final String key = it.next();
-                final ImmutableNode node =
-                        new ImmutableNode.Builder().name(key)
-                                .value(config.getProperty(key)).create();
-
-                // print the node
-                printNode(out, indentLevel + 1, node);
-
-                if (it.hasNext())
-                {
-                    out.println();
-                }
-            }
-            out.println(padding + "</dict>");
+            printNodes(out, config.getImmutableNodes(), padding, indentLevel);
+            
         }
         else if (value instanceof Map)
         {

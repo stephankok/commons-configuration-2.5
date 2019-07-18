@@ -161,29 +161,6 @@ public class PropertyListConfiguration extends BaseHierarchicalConfiguration
     }
 
     @Override
-    protected void setPropertyInternal(final String key, final Object value)
-    {
-        // special case for byte arrays, they must be stored as is in the configuration
-        if (value instanceof byte[])
-        {
-            setDetailEvents(false);
-            try
-            {
-                clearProperty(key);
-                addPropertyDirect(key, value);
-            }
-            finally
-            {
-                setDetailEvents(true);
-            }
-        }
-        else
-        {
-            super.setPropertyInternal(key, value);
-        }
-    }
-
-    @Override
     protected void addPropertyInternal(final String key, final Object value)
     {
         if (value instanceof byte[])
