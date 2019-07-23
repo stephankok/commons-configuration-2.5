@@ -26,15 +26,15 @@ public class TestRunner {
 //		Check arguments
 		int repeats = validateArgument(args);
 		
-		System.out.println("Repeating " + repeats + " times.");
+		System.err.println("Repeating " + repeats + " times.");
 		runTests(repeats);
-		
+		System.err.println("Exiting successful");
 		System.exit(0);
 	}
 
 	public static int validateArgument(String[] args) {
 		if (args.length != 1) {
-			System.out.println("You must specify the amount of loops by parsing one argument");
+			System.err.println("You must specify the amount of loops by parsing one argument");
 			System.exit(1);
 		}
 		
@@ -42,7 +42,7 @@ public class TestRunner {
 			return Integer.parseInt(args[0]);			
 		}
 		catch (NumberFormatException e) {
-			System.out.println("Parsed argument is not an integer: " + e.getMessage());
+			System.err.println("Parsed argument is not an integer: " + e.getMessage());
 			System.exit(2);
 		}
 		
@@ -60,19 +60,19 @@ public class TestRunner {
 	}
 	
 	private static void printResult(Result result, int run) {
-		System.out.println("Failed to run tests all " + AMOUNTOFTESTS + " tests succesfull");
-		System.out.println("Run: " + run);
-		System.out.println("Fails: " + result.getFailureCount());
-		System.out.println("Runtime: " + result.getRunTime());
-		System.out.println("RunCount: " + result.getRunCount());
-		System.out.println("IgnoreCount: " + result.getIgnoreCount() + "\n");
-		System.out.print("Failed runs: ");
+		System.err.println("Failed to run tests all " + AMOUNTOFTESTS + " tests succesfull");
+		System.err.println("Run: " + run);
+		System.err.println("Fails: " + result.getFailureCount());
+		System.err.println("Runtime: " + result.getRunTime());
+		System.err.println("RunCount: " + result.getRunCount());
+		System.err.println("IgnoreCount: " + result.getIgnoreCount() + "\n");
+		System.err.print("Failed runs: ");
 		for (int i = 0; i < result.getFailures().size(); i++) {			
-			System.out.println("    " + result.getFailures().get(i));			
-			System.out.println("    " + result.getFailures().get(i).getMessage());
-			System.out.println("    " + result.getFailures().get(i).getTrace());
-			System.out.println("    " + result.getFailures().get(i).getTestHeader());
-			System.out.println("    ");
+			System.err.println("    " + result.getFailures().get(i));			
+			System.err.println("    " + result.getFailures().get(i).getMessage());
+			System.err.println("    " + result.getFailures().get(i).getTrace());
+			System.err.println("    " + result.getFailures().get(i).getTestHeader());
+			System.err.println("    ");
 		}
 	}
 	
